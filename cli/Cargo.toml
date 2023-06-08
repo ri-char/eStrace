@@ -1,0 +1,26 @@
+[package]
+name = "estrace"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+syscalls = { version = "*", default-features = false, features = ["x86_64"] }
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+syscalls = { version = "*", default-features = false, features = ["aarch64"] }
+
+[dependencies]
+aya = { git = "https://github.com/aya-rs/aya", branch = "main" }
+aya-log = { git = "https://github.com/aya-rs/aya", branch = "main" }
+anyhow = "1"
+tokio = { version = "1", features = ["rt", "macros", "signal", "sync"] }
+clap = { version = "4", features = ["derive"] }
+common = { path = "../common"}
+bytes = "1"
+lazy_static = "1"
+colored = "2"
+
+[[bin]]
+name = "estrace"
+path = "src/main.rs"

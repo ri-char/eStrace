@@ -1,0 +1,7 @@
+[workspace]
+members = ["cli", "xtask", "common"]
+
+[profile.dev]
+panic = "abort"
+[profile.release]
+panic = "abort"
