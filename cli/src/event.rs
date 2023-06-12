@@ -20,6 +20,7 @@ impl Display for Event {
         let syscall_name = sysname
             .map(|w| w.name().to_string())
             .unwrap_or_else(|| format!("syscall_{}", self.syscall));
+        let syscall_arg_name = crate::syscall_info::SYSCALL_ARG_TABLE.get(self.syscall as usize);
 
         write!(
             f,
@@ -42,6 +43,11 @@ impl Display for Event {
         for (i, item) in self.args[..none_start].iter().enumerate() {
             let seq = if i == 0 { "" } else { ", " };
             write!(f, "{}", seq)?;
+            if let Some(arg_names) = syscall_arg_name {
+                if !arg_names.arg_names[i].is_empty() {
+                    write!(f, "{} = ", arg_names.arg_names[i])?;
+                }
+            }
             if let Some((value, str)) = item {
                 if str.is_empty() {
                     write!(f, "{}", format!("0x{:x}", value).yellow())?;

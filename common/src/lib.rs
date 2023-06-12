@@ -20,7 +20,7 @@ bitflags! {
         /// and is_str is not set
         /// if this flag is set, the next u8 bits be used to store the length of the struct
         /// else the next u8 will be used to store the argument index which is the size of the struct
-        /// if the argument index is 7, the size is syscall return number(work only when record_after is set)
+        /// if the argument index is 6, the size is syscall return number(work only when record_after is set)
         const is_const = 0b00010000;
     }
 }

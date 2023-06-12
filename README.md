@@ -19,6 +19,7 @@ Options:
 ## Building
 
 ```
+cargo install bpf-linker
 cargo xtask run -- <args>
 ```
 

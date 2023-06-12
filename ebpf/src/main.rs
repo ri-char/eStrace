@@ -194,7 +194,7 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
             } else {
                 additional_size = if ty.contains(ArgType::is_const) {
                     size_info as usize
-                } else if size_info == 7 {
+                } else if size_info == 6 {
                     ret
                 } else {
                     let index = size_info as usize;

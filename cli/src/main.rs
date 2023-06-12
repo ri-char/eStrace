@@ -84,7 +84,7 @@ fn init_bpf(args: &Args) -> Result<()> {
         aya::maps::HashMap::try_from(bpf.take_map("SYSCALL_ARG_TABLE").unwrap())?;
     for (sysno, v) in syscall_info::SYSCALL_ARG_TABLE.iter().enumerate() {
         let mut map_element: [u16; 6] = [0; 6];
-        for (i, element) in v.iter().enumerate() {
+        for (i, element) in v.args.iter().enumerate() {
             map_element[i] = ((element.0.bits() as u16) << 8) | element.1 as u16;
         }
         syscall_arg_table.insert(sysno as u64, map_element, 0)?;

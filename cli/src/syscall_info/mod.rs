@@ -15,654 +15,523 @@ pub mod aarch64;
 #[cfg(target_arch = "aarch64")]
 pub use aarch64::SYSCALL_ARG_TABLE;
 
+pub type ArgInfo = (ArgType, u8);
+
+pub struct SyscallInfo {
+    pub arg_names: [&'static str; 6],
+    pub args: [ArgInfo; 6],
+    pub tags: &'static [&'static str],
+}
+
 macro_rules! syscall {
-    ($name:ident $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-        ];
+    ($name:ident $(,)? ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: ["", "", "", "", "", ""],
+            args: [
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+            ],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [
-            $arg0,
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-        ];
+    ($name:ident, $arg0_name:ident = $arg0:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [stringify!($arg0_name), "", "", "", "", ""],
+            args: [
+                $arg0,
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+            ],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr, $arg1:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [
-            $arg0,
-            $arg1,
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-        ];
+    ($name:ident, $arg0_name:ident = $arg0:expr, $arg1_name:ident = $arg1:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [
+                stringify!($arg0_name),
+                stringify!($arg1_name),
+                "",
+                "",
+                "",
+                "",
+            ],
+            args: [
+                $arg0,
+                $arg1,
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+            ],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr, $arg1:expr, $arg2:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [
-            $arg0,
-            $arg1,
-            $arg2,
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-        ];
+    ($name:ident, $arg0_name:ident = $arg0:expr, $arg1_name:ident = $arg1:expr, $arg2_name:ident = $arg2:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [
+                stringify!($arg0_name),
+                stringify!($arg1_name),
+                stringify!($arg2_name),
+                "",
+                "",
+                "",
+            ],
+            args: [
+                $arg0,
+                $arg1,
+                $arg2,
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+            ],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr, $arg1:expr, $arg2:expr, $arg3:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [
-            $arg0,
-            $arg1,
-            $arg2,
-            $arg3,
-            (ArgType::empty(), 0),
-            (ArgType::empty(), 0),
-        ];
+    ($name:ident, $arg0_name:ident = $arg0:expr, $arg1_name:ident = $arg1:expr, $arg2_name:ident = $arg2:expr, $arg3_name:ident = $arg3:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [
+                stringify!($arg0_name),
+                stringify!($arg1_name),
+                stringify!($arg2_name),
+                stringify!($arg3_name),
+                "",
+                "",
+            ],
+            args: [
+                $arg0,
+                $arg1,
+                $arg2,
+                $arg3,
+                (ArgType::empty(), 0),
+                (ArgType::empty(), 0),
+            ],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] =
-            [$arg0, $arg1, $arg2, $arg3, $arg4, (ArgType::empty(), 0)];
+    ($name:ident, $arg0_name:ident = $arg0:expr, $arg1_name:ident = $arg1:expr, $arg2_name:ident = $arg2:expr, $arg3_name:ident = $arg3:expr, $arg4_name:ident = $arg4:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [
+                stringify!($arg0_name),
+                stringify!($arg1_name),
+                stringify!($arg2_name),
+                stringify!($arg3_name),
+                stringify!($arg4_name),
+                "",
+            ],
+            args: [$arg0, $arg1, $arg2, $arg3, $arg4, (ArgType::empty(), 0)],
+            tags: &$tags,
+        };
     };
-    ($name:ident, $arg0:expr, $arg1:expr, $arg2:expr, $arg3:expr, $arg4:expr, $arg5:expr $(,)?) => {
-        pub const $name: [(ArgType, u8); 6] = [$arg0, $arg1, $arg2, $arg3, $arg4, $arg5];
+    ($name:ident, $arg0_name:ident = $arg0:expr, $arg1_name:ident = $arg1:expr, $arg2_name:ident = $arg2:expr, $arg3_name:ident = $arg3:expr, $arg4_name:ident = $arg4:expr, $arg5_name:ident = $arg5:expr ; $tags:expr) => {
+        pub const $name: SyscallInfo = SyscallInfo {
+            arg_names: [
+                stringify!($arg0_name),
+                stringify!($arg1_name),
+                stringify!($arg2_name),
+                stringify!($arg3_name),
+                stringify!($arg4_name),
+                stringify!($arg5_name),
+            ],
+            args: [$arg0, $arg1, $arg2, $arg3, $arg4, $arg5],
+            tags: &$tags,
+        };
     };
 }
 
 const ADDR: (ArgType, u8) = (ArgType::record_before, 0);
 const INT: (ArgType, u8) = (ArgType::record_before, 0);
 const STR: (ArgType, u8) = (ArgType::from_bits_truncate(0b00001101), 0);
+const OUT_STR: (ArgType, u8) = (ArgType::from_bits_truncate(0b00001110), 0);
 const fn input_struct(size: u8) -> (ArgType, u8) {
     (ArgType::from_bits_truncate(0b00010101), size)
 }
 const fn output_struct(size: u8) -> (ArgType, u8) {
     (ArgType::from_bits_truncate(0b00010110), size)
 }
+const fn inout_struct(size: u8) -> (ArgType, u8) {
+    (ArgType::from_bits_truncate(0b00010111), size)
+}
+const fn input_struct_ref(r#ref: u8) -> (ArgType, u8) {
+    (ArgType::from_bits_truncate(0b00000101), r#ref)
+}
+const fn output_struct_ref(r#ref: u8) -> (ArgType, u8) {
+    (ArgType::from_bits_truncate(0b00000110), r#ref)
+}
 
-// DESC
-syscall!(read, INT, STR, INT);
-// DESC
-syscall!(write, INT, STR, INT);
-// DESC, FILE
-syscall!(open, STR, INT, INT);
-// DESC
-syscall!(close, INT);
-// FILE, STAT, STAT_LIKE
-syscall!(stat, STR, ADDR);
-// DESC, FSTAT, STAT_LIKE
-syscall!(fstat, INT, ADDR);
-// FILE, LSTAT, STAT_LIKE
-syscall!(lstat, STR, ADDR);
-// DESC
-syscall!(poll, ADDR, INT, INT);
-// DESC
-syscall!(lseek, INT, INT, INT);
-// DESC, MEMORY
-syscall!(mmap, ADDR, INT, INT, INT, INT, INT);
-// MEMORY
-syscall!(mprotect, ADDR, INT, INT);
-// MEMORY
-syscall!(munmap, ADDR, INT);
-// MEMORY
-syscall!(brk, ADDR);
-// SIGNAL
-syscall!(rt_sigaction, INT, ADDR, ADDR);
-// SIGNAL
-syscall!(rt_sigprocmask, INT, ADDR, ADDR, INT);
-// SIGNAL
-syscall!(rt_sigreturn);
-syscall!(ioctl, INT, INT, ADDR);
-// DESC
-syscall!(pread64, INT, STR, INT, INT);
-// DESC
-syscall!(pwrite64, INT, STR, INT, INT);
-// DESC
-syscall!(readv, INT, ADDR, INT);
-// DESC
-syscall!(writev, INT, ADDR, INT);
-// FILE
-syscall!(access, STR, INT);
-// DESC
-syscall!(pipe, INT, INT);
-// DESC
-syscall!(select, INT, ADDR, ADDR, ADDR, ADDR);
-syscall!(sched_yield, ADDR);
-// MEMORY
-syscall!(mremap, ADDR, INT, INT, INT, ADDR);
-// MEMORY
-syscall!(msync, ADDR, INT, INT);
-// MEMORY
-syscall!(mincore, ADDR, INT, ADDR);
-// MEMORY
-syscall!(madvise, ADDR, INT, INT);
-// FILE, IPC
-syscall!(shmget, INT, INT, INT);
-// IPC, MEMORY
-syscall!(shmat, INT, ADDR, INT);
-// IPC
-syscall!(shmctl, INT, INT, STR);
-// DESC
-syscall!(dup, INT);
-// DESC
-syscall!(dup2, INT, INT);
-// SIGNAL
-syscall!(pause, ADDR);
-syscall!(nanosleep, ADDR, ADDR);
-syscall!(getitimer, INT, ADDR);
-syscall!(alarm, INT);
-syscall!(setitimer, INT, ADDR);
-// PURE
-syscall!(getpid, ADDR);
-// DESC
-syscall!(sendfile, INT, INT, ADDR, INT);
-// NETWORK
-syscall!(socket, INT, INT, INT);
-// NETWORK
-syscall!(connect, INT, ADDR, INT);
-// NETWORK
-syscall!(accept, INT, ADDR, ADDR);
-// NETWORK
-syscall!(sendto, INT, STR, INT, INT);
-// NETWORK
-syscall!(recvfrom, INT, STR, INT, INT, ADDR, ADDR);
-// NETWORK
-syscall!(sendmsg, INT, ADDR, INT);
-// NETWORK
-syscall!(recvmsg, INT, ADDR, INT);
-// NETWORK
-syscall!(shutdown, INT, INT);
-// NETWORK
-syscall!(bind, INT, ADDR, INT);
-// NETWORK
-syscall!(listen, INT, INT);
-// NETWORK
-syscall!(getsockname, INT, ADDR, ADDR);
-// NETWORK
-syscall!(getpeername, INT, ADDR, ADDR);
-// NETWORK
-syscall!(socketpair, INT, INT, INT, INT);
-// NETWORK
-syscall!(setsockopt, INT, INT, INT, ADDR, INT);
-// NETWORK
-syscall!(getsockopt, INT, INT, INT, ADDR, ADDR);
-// PROCESS
-syscall!(clone, ADDR, INT);
-// PROCESS
-syscall!(fork, ADDR);
-// PROCESS
-syscall!(vfork, ADDR);
-// PROCESS
-syscall!(execve, STR, STR, STR);
-// PROCESS
-syscall!(exit, INT);
-// PROCESS
-syscall!(wait4, INT, INT, INT, ADDR);
-// PROCESS
-syscall!(kill, INT, INT);
-syscall!(uname, ADDR);
-// IPC
-syscall!(semget, INT, INT, INT);
-// IPC
-syscall!(semop, INT, ADDR, INT);
-// IPC
-syscall!(semctl, INT, INT, INT);
-// IPC
-syscall!(shmdt, INT, ADDR, INT);
-// IPC
-syscall!(msgget, INT, INT);
-// IPC
-syscall!(msgsnd, INT, ADDR, INT, INT);
-// IPC
-syscall!(msgrcv, INT, ADDR, INT, INT, INT);
-// IPC
-syscall!(msgctl, INT, INT, ADDR);
-// DESC
-syscall!(fcntl, INT, INT);
-// DESC
-syscall!(flock, INT, INT);
-// DESC
-syscall!(fsync, INT);
-// DESC
-syscall!(fdatasync, INT);
-// FILE
-syscall!(truncate, STR, INT);
-// DESC
-syscall!(ftruncate, INT, INT);
-// DESC
-syscall!(getdents, INT, ADDR, INT);
-// FILE
-syscall!(getcwd, STR, INT);
-// FILE
-syscall!(chdir, STR);
-// DESC
-syscall!(fchdir, INT);
-// FILE
-syscall!(rename, STR, STR);
-// FILE
-syscall!(mkdir, STR, INT);
-// FILE
-syscall!(rmdir, STR);
-// DESC, FILE
-syscall!(creat, STR, INT);
-// FILE
-syscall!(link, STR, STR);
-// FILE
-syscall!(unlink, STR);
-// FILE
-syscall!(symlink, STR, STR);
-// FILE
-syscall!(readlink, STR, STR, INT);
-// FILE
-syscall!(chmod, STR, INT);
-// DESC
-syscall!(fchmod, INT, INT);
-// FILE
-syscall!(chown, STR, INT, INT);
-// DESC
-syscall!(fchown, INT, INT, INT);
-// FILE
-syscall!(lchown, STR, INT, INT);
-syscall!(umask, INT);
-// CLOCK
-syscall!(gettimeofday, ADDR, ADDR);
-syscall!(getrlimit, INT, ADDR);
-syscall!(getrusage, INT, ADDR);
-syscall!(sysinfo, ADDR);
-syscall!(times, ADDR);
-syscall!(ptrace, ADDR, INT, ADDR, ADDR);
-// CREDS, PURE
-syscall!(getuid, ADDR);
-syscall!(syslog, INT, STR, INT);
-// CREDS, PURE
-syscall!(getgid, ADDR);
-// CREDS
-syscall!(setuid, INT);
-// CREDS
-syscall!(setgid, INT);
-// CREDS, PURE
-syscall!(geteuid, ADDR);
-// CREDS, PURE
-syscall!(getegid, ADDR);
-syscall!(setpgid, INT, INT, INT);
-// PURE
-syscall!(getppid, ADDR);
-// PURE
-syscall!(getpgrp, ADDR);
-syscall!(setsid, ADDR);
-// CREDS
-syscall!(setreuid, INT, INT);
-// CREDS
-syscall!(setregid, INT, INT);
-// CREDS
-syscall!(getgroups, INT, INT);
-// CREDS
-syscall!(setgroups, INT, INT);
-// CREDS
-syscall!(setresuid, INT, INT, INT);
-// CREDS
-syscall!(getresuid, INT, INT, INT);
-// CREDS
-syscall!(setresgid, INT, INT, INT);
-// CREDS
-syscall!(getresgid, INT, INT, INT);
-syscall!(getpgid, INT);
-// CREDS
-syscall!(setfsuid, INT);
-// CREDS
-syscall!(setfsgid, INT);
-syscall!(getsid, INT);
-// CREDS
-syscall!(capget, ADDR, ADDR);
-// CREDS
-syscall!(capset, ADDR, ADDR);
-// SIGNAL
-syscall!(rt_sigpending, ADDR);
-// SIGNAL
-syscall!(rt_sigtimedwait, ADDR, ADDR, ADDR);
-// PROCESS, SIGNAL
-syscall!(rt_sigqueueinfo, INT, INT, ADDR);
-// SIGNAL
-syscall!(rt_sigsuspend, INT);
-// SIGNAL
-syscall!(sigaltstack, ADDR, ADDR);
-// FILE
-syscall!(utime, STR, ADDR, INT);
-// FILE
-syscall!(mknod, STR, INT, INT);
-// FILE
-syscall!(uselib, ADDR);
-syscall!(personality, INT);
-// STATFS_LIKE
-syscall!(ustat, INT, ADDR);
-// FILE, STATFS, STATFS_LIKE
-syscall!(statfs, STR, ADDR);
-// FILE, FSTATFS, STATFS_LIKE
-syscall!(fstatfs, INT, ADDR);
-syscall!(sysfs, INT, STR);
-syscall!(getpriority, INT, INT);
-syscall!(setpriority, INT, INT, INT);
-syscall!(sched_setparam, INT, ADDR);
-syscall!(sched_getparam, INT, ADDR);
-syscall!(sched_setscheduler, INT, INT, ADDR);
-syscall!(sched_getscheduler, INT);
-syscall!(sched_get_priority_max, INT);
-syscall!(sched_get_priority_min, INT);
-syscall!(sched_rr_get_interval, INT, ADDR);
-// MEMORY
-syscall!(mlock, ADDR, INT);
-// MEMORY
-syscall!(munlock, ADDR, INT);
-// MEMORY
-syscall!(mlockall, INT);
-// MEMORY
-syscall!(munlockall, ADDR);
-syscall!(vhangup, ADDR);
-syscall!(modify_ldt, INT, ADDR, INT);
-// FILE
-syscall!(pivot_root, STR, STR);
-syscall!(_sysctl, ADDR);
-// CREDS
-syscall!(prctl, INT, INT, INT, INT, INT);
-syscall!(arch_prctl, INT, ADDR);
-// CLOCK
-syscall!(adjtimex, STR);
-syscall!(setrlimit, INT, ADDR);
-// FILE
-syscall!(chroot, STR);
-syscall!(sync, INT);
-// FILE
-syscall!(acct, STR);
-// CLOCK
-syscall!(settimeofday, ADDR, ADDR);
-// FILE
-syscall!(mount, STR, STR, STR, INT, ADDR);
-// FILE
-syscall!(umount2, STR, INT);
-// FILE
-syscall!(swapon, STR, INT);
-// FILE
-syscall!(swapoff, STR);
-syscall!(reboot, INT, INT, INT, ADDR);
-syscall!(sethostname, STR, INT);
-syscall!(setdomainname, STR, INT);
-syscall!(iopl, INT);
-syscall!(ioperm, INT, INT, INT);
-syscall!(create_module, STR, INT);
-syscall!(init_module, ADDR, INT, STR);
-syscall!(delete_module, STR, INT);
-syscall!(get_kernel_syms, ADDR);
-syscall!(query_module, STR, INT, STR, INT, INT);
-// FILE
-syscall!(quotactl, INT, STR, INT, ADDR);
-syscall!(nfsservctl, INT, ADDR, ADDR);
-// NETWORK
-syscall!(getpmsg);
-// NETWORK
-syscall!(putpmsg);
-syscall!(afs_syscall);
-syscall!(tuxcall);
-syscall!(security);
-// PURE
-syscall!(gettid, ADDR);
-// DESC
-syscall!(readahead, INT, INT, INT);
-// FILE
-syscall!(setxattr, STR, STR, ADDR, INT, INT);
-// FILE
-syscall!(lsetxattr, STR, STR, ADDR, INT, INT);
-// DESC
-syscall!(fsetxattr, INT, STR, ADDR, INT, INT);
-// FILE
-syscall!(getxattr, STR, STR, ADDR, INT);
-// FILE
-syscall!(lgetxattr, STR, STR, ADDR, INT);
-// DESC
-syscall!(fgetxattr, INT, STR, ADDR, INT);
-// FILE
-syscall!(listxattr, STR, STR, INT);
-// FILE
-syscall!(llistxattr, STR, STR, INT);
-// DESC
-syscall!(flistxattr, INT, STR, INT);
-// FILE
-syscall!(removexattr, STR, STR);
-// FILE
-syscall!(lremovexattr, STR, STR);
-// DESC
-syscall!(fremovexattr, INT, STR);
-// PROCESS, SIGNAL
-syscall!(tkill, INT, INT);
-// CLOCK
-syscall!(time, INT);
-syscall!(futex, ADDR, INT, INT, ADDR, INT, INT);
-syscall!(sched_setaffinity, INT, INT, INT);
-syscall!(sched_getaffinity, INT, INT, INT);
-syscall!(set_thread_area, ADDR);
-// MEMORY
-syscall!(io_setup, INT, ADDR);
-// MEMORY
-syscall!(io_destroy, INT);
-syscall!(io_getevents, INT, INT, INT, ADDR, INT);
-syscall!(io_submit, INT, INT, ADDR);
-syscall!(io_cancel, INT, ADDR, ADDR);
-syscall!(get_thread_area, ADDR);
-syscall!(lookup_dcookie, INT, STR, INT);
-// DESC
-syscall!(epoll_create, INT);
-syscall!(epoll_ctl_old, INT, INT, INT, ADDR);
-syscall!(epoll_wait_old, INT, ADDR, INT, INT);
-// MEMORY
-syscall!(remap_file_pages, ADDR, INT, INT, INT, INT);
-// DESC
-syscall!(getdents64, INT, ADDR, INT);
-syscall!(set_tid_address, ADDR);
-syscall!(restart_syscall, ADDR);
-// IPC
-syscall!(semtimedop, INT, ADDR, INT);
-// DESC
-syscall!(fadvise64, INT, INT, INT, INT);
-syscall!(timer_create, INT, ADDR, INT);
-syscall!(timer_settime, INT, INT, ADDR, ADDR);
-syscall!(timer_gettime, INT, ADDR);
-syscall!(timer_getoverrun, INT);
-syscall!(timer_delete, INT);
-// CLOCK
-syscall!(clock_settime, INT, ADDR);
-// CLOCK
-syscall!(clock_gettime, INT, ADDR);
-// CLOCK
-syscall!(clock_getres, INT, ADDR);
-syscall!(clock_nanosleep, INT, INT, ADDR, ADDR);
-// PROCESS
-syscall!(exit_group, INT);
-// DESC
-syscall!(epoll_wait, INT, ADDR, INT, INT);
-// DESC
-syscall!(epoll_ctl, INT, INT, INT, ADDR);
-// PROCESS
-syscall!(tgkill, INT, INT, INT);
-// FILE
-syscall!(utimes, STR, ADDR);
-syscall!(vserver);
-// MEMORY
-syscall!(mbind, ADDR, INT, INT, INT, INT, INT);
-// MEMORY
-syscall!(set_mempolicy, INT, INT, INT);
-// MEMORY
-syscall!(get_mempolicy, INT, INT, INT, ADDR, INT);
-// DESC
-syscall!(mq_open, STR, INT);
-syscall!(mq_unlink, STR);
-// DESC
-syscall!(mq_timedsend, INT, STR, INT, INT);
-// DESC
-syscall!(mq_timedreceive, INT, ADDR, INT, INT, ADDR);
-// DESC
-syscall!(mq_notify, INT, ADDR);
-// DESC
-syscall!(mq_getsetattr, INT, ADDR, ADDR);
-syscall!(kexec_load, INT, INT, ADDR, INT);
-// PROCESS
-syscall!(waitid, INT, INT, INT, INT);
-syscall!(add_key, STR, STR, ADDR, INT, INT);
-syscall!(request_key, STR, STR, STR, INT);
-syscall!(keyctl, INT);
-syscall!(ioprio_set, INT, INT);
-syscall!(ioprio_get, INT, INT);
-// DESC
-syscall!(inotify_init, ADDR);
-// DESC, FILE
-syscall!(inotify_add_watch, INT, STR, INT);
-// DESC
-syscall!(inotify_rm_watch, INT, INT);
-// MEMORY
-syscall!(migrate_pages, INT, INT, INT, INT);
-// DESC, FILE
-syscall!(openat, INT, STR, INT);
-// DESC, FILE
-syscall!(mkdirat, INT, STR, INT);
-// DESC, FILE
-syscall!(mknodat, INT, STR, INT, INT);
-// DESC, FILE
-syscall!(fchownat, INT, STR, INT, INT, INT);
-// DESC, FILE
-syscall!(futimesat, INT, STR, ADDR);
-// DESC, FILE, FSTAT, STAT_LIKE
-syscall!(newfstatat, INT, STR, ADDR, INT);
-// DESC, FILE
-syscall!(unlinkat, INT, STR, INT);
-// DESC, FILE
-syscall!(renameat, INT, STR, INT, STR);
-// DESC, FILE
-syscall!(linkat, INT, STR, INT, STR, INT);
-// DESC, FILE
-syscall!(symlinkat, STR, INT, STR);
-// DESC, FILE
-syscall!(readlinkat, INT, STR, STR, INT);
-// DESC, FILE
-syscall!(fchmodat, INT, STR, INT, INT);
-// DESC, FILE
-syscall!(faccessat, INT, STR, INT, INT);
-// DESC
-syscall!(pselect6, INT, INT, INT, INT, ADDR, INT);
-// DESC
-syscall!(ppoll, INT, INT, ADDR, INT);
-syscall!(unshare, INT);
-syscall!(set_robust_list, ADDR, INT);
-syscall!(get_robust_list, INT, ADDR, INT);
-// DESC
-syscall!(splice, INT, INT, INT, INT, INT, INT);
-// DESC
-syscall!(tee, INT, INT, INT, INT);
-// DESC
-syscall!(sync_file_range, INT, INT, INT, INT);
-// DESC
-syscall!(vmsplice, INT, ADDR, INT, INT);
-// MEMORY
-syscall!(move_pages, INT, INT, ADDR, INT, INT, INT);
-// DESC, FILE
-syscall!(utimensat, INT, STR, ADDR, INT);
-// DESC
-syscall!(epoll_pwait, INT, ADDR, INT, INT, INT);
-// DESC, SIGNAL
-syscall!(signalfd, INT, INT, INT);
-// DESC
-syscall!(timerfd_create, INT, INT);
-// DESC
-syscall!(eventfd, INT, INT);
-// DESC
-syscall!(fallocate, INT, INT, INT, INT);
-// DESC
-syscall!(timerfd_settime, INT, INT, ADDR);
-// DESC
-syscall!(timerfd_gettime, INT, ADDR);
-syscall!(accept4, INT, ADDR, INT);
-// DESC, SIGNAL
-syscall!(signalfd4, INT, INT, INT);
-// DESC
-syscall!(eventfd2, INT, INT);
-// DESC
-syscall!(epoll_create1, INT);
-// DESC
-syscall!(dup3, INT, INT, INT);
-// DESC
-syscall!(pipe2, INT, INT);
-// DESC
-syscall!(inotify_init1, INT);
-// DESC
-syscall!(preadv, INT, ADDR, INT, INT);
-// DESC
-syscall!(pwritev, INT, ADDR, INT, INT);
-// PROCESS, SIGNAL
-syscall!(rt_tgsigqueueinfo, INT, INT, INT);
-// DESC
-syscall!(perf_event_open, ADDR, INT, INT, INT, INT);
-// NETWORK
-syscall!(recvmmsg, INT, ADDR, INT, INT, ADDR);
-// DESC
-syscall!(fanotify_init, INT, INT);
-// DESC, FILE
-syscall!(fanotify_mark, INT, INT, INT, INT, STR);
-syscall!(prlimit64, INT, INT, ADDR, ADDR);
-// DESC, FILE
-syscall!(name_to_handle_at, INT, STR, ADDR, INT, INT);
-// DESC
-syscall!(open_by_handle_at, INT, ADDR, INT);
-// CLOCK
-syscall!(clock_adjtime, ADDR);
-// DESC
-syscall!(syncfs, INT);
-// NETWORK
-syscall!(sendmmsg, INT, ADDR, INT, INT);
-// DESC
-syscall!(setns, INT, INT);
-syscall!(getcpu, INT, INT, ADDR);
-syscall!(process_vm_readv, INT, ADDR, INT, ADDR, INT, INT);
-syscall!(process_vm_writev, INT, ADDR, INT, ADDR, INT, INT);
-syscall!(kcmp, INT, INT, INT, INT, INT);
-// DESC
-syscall!(finit_module, INT, STR, INT);
-syscall!(sched_setattr, INT, ADDR, INT);
-syscall!(sched_getattr, INT, ADDR, INT, INT);
-// DESC, FILE
-syscall!(renameat2, INT, STR, INT, STR);
-syscall!(seccomp, INT, INT, ADDR);
-syscall!(getrandom, STR, INT, INT);
-// DESC
-syscall!(memfd_create, STR, INT);
-// DESC
-syscall!(kexec_file_load, INT, INT, ADDR, INT);
-// DESC
-syscall!(bpf, INT, ADDR, INT);
-// DESC, PROCESS
-syscall!(execveat, INT, STR, STR, STR, INT);
-// DESC
-syscall!(userfaultfd, INT);
-syscall!(membarrier, INT, INT, INT);
-// MEMORY
-syscall!(mlock2, ADDR, INT, INT);
-// DESC
-syscall!(copy_file_range, INT, INT, INT, INT, INT, INT);
-// DESC
-syscall!(preadv2, INT, ADDR, INT, INT, INT);
-// DESC
-syscall!(pwritev2, INT, ADDR, INT, INT, INT);
-// MEMORY
-syscall!(pkey_mprotect, ADDR, INT, INT, INT);
-syscall!(pkey_alloc, INT, INT);
-syscall!(pkey_free, INT);
-// DESC, FILE, FSTAT, STAT_LIKE
-syscall!(statx, INT, STR, INT, INT, STR);
-syscall!(io_pgetevents);
-syscall!(rseq);
+macro_rules! sizeof {
+    ($name:ident) => {
+        std::mem::size_of::<::libc::$name>() as u8
+    };
+}
 
-// FILE
-syscall!(fstatat, INT, STR, output_struct(144), INT);
-// FILE
-syscall!(sync_file_range2, INT, INT, INT, INT);
+syscall!(read, fd = INT, buf = output_struct_ref(2), count = INT; ["DESC"]);
+syscall!(write, fd = INT, buf = input_struct_ref(6), count = INT; ["DESC"]);
+syscall!(open, filename = STR, flags = INT, flags = INT; ["DESC", "FILE"]);
+syscall!(close, fd = INT; ["DESC"]);
+syscall!(stat, filename=STR, statbuf = output_struct(sizeof!(stat)); ["FILE", "STAT", "STAT_LIKE"]);
+syscall!(fstat, fd = INT, statbuf = output_struct(sizeof!(stat)); ["DESC", "FSTAT", "STAT_LIKE"]);
+syscall!(lstat, filename = STR, statbuf = output_struct(sizeof!(stat)); ["FILE", "LSTAT", "STAT_LIKE"]);
+syscall!(poll, ufds = ADDR, nfds = INT, timeout_msecs = INT; ["DESC"]);
+syscall!(lseek, fd = INT, offset = INT, whence = INT; ["DESC"]);
+syscall!(mmap, addr = ADDR, len = INT, prot = INT, flags = INT, fd = INT, off = INT; ["DESC", "MEMORY"]);
+syscall!(mprotect, start = ADDR, len = INT, prot = INT; ["MEMORY"]);
+syscall!(munmap, addr = ADDR, len = INT; ["MEMORY"]);
+syscall!(brk, brk = ADDR; ["MEMORY"]);
+syscall!(rt_sigaction, sig = INT, act = input_struct(sizeof!(sigaction)), oact = output_struct(sizeof!(sigaction)), sigsetsize = INT; ["SIGNAL"]);
+syscall!(rt_sigprocmask, how = INT, nset = input_struct(sizeof!(sigset_t)), oset = output_struct(sizeof!(sigset_t)), sigsetsize = INT; ["SIGNAL"]);
+syscall!(rt_sigreturn; ["SIGNAL"]);
+syscall!(ioctl, fd = INT, cmd = INT, arg = ADDR; []);
+syscall!(pread64, fd = INT, buf = output_struct_ref(6), count = INT, pos = INT; ["DESC"]);
+syscall!(pwrite64, fd = INT, buf = input_struct_ref(2), count = INT, pos = INT; ["DESC"]);
+syscall!(readv, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT; ["DESC"]);
+syscall!(writev, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT; ["DESC"]);
+syscall!(access, filename = STR, mode = INT; ["FILE"]);
+syscall!(pipe, fildes = input_struct(8); ["DESC"]);
+syscall!(select, n = INT, inp = inout_struct(sizeof!(fd_set)), outp = inout_struct(sizeof!(fd_set)), exp = inout_struct(sizeof!(fd_set)), tvp = input_struct(sizeof!(timeval)); ["DESC"]);
+syscall!(sched_yield; []);
+syscall!(mremap, old_address = ADDR, old_size = INT, new_size = INT, flags = INT, new_address = ADDR; ["MEMORY"]);
+syscall!(msync, start = ADDR, len = INT, flags = INT; ["MEMORY"]);
+syscall!(mincore, start = ADDR, len = INT, vec = ADDR; ["MEMORY"]);
+syscall!(madvise, start = ADDR, len_in = INT, behavior = INT; ["MEMORY"]);
+syscall!(shmget, key = INT, size = INT, shmflg = INT; ["FILE", "IPC"]);
+syscall!(shmat, shmid = INT, shmaddr = ADDR, shmflg = INT; ["IPC", "MEMORY"]);
+syscall!(shmctl, shmid = INT, cmd = INT, buf = input_struct(sizeof!(shmid_ds)); ["IPC"]);
+syscall!(dup, fildes = INT; ["DESC"]);
+syscall!(dup2, oldfd = INT, newfd = INT; ["DESC"]);
+syscall!(pause; ["SIGNAL"]);
+syscall!(nanosleep, rqtp = input_struct(sizeof!(timespec)), rmtp = output_struct(sizeof!(timespec)); []);
+syscall!(getitimer, which = INT, value = output_struct(sizeof!(itimerval)); []);
+syscall!(alarm, seconds = INT; []);
+syscall!(setitimer, which = INT, ivalue = input_struct(sizeof!(itimerval)), ovalue = output_struct(sizeof!(itimerval)); []);
+syscall!(getpid; ["PURE"]);
+syscall!(sendfile, out_fd = INT, in_fd = INT, offset = inout_struct(sizeof!(off_t)), count = INT; ["DESC"]);
+syscall!(socket, family = INT, type = INT, protocol = INT; ["NETWORK"]);
+syscall!(connect, fd = INT, uservaddr = input_struct(sizeof!(sockaddr)), addrlen = INT; ["NETWORK"]);
+syscall!(accept, fd = INT, upeer_sockaddr = input_struct(sizeof!(sockaddr)), upeer_addrlen = output_struct(4); ["NETWORK"]);
+syscall!(sendto, fd = INT, buff = input_struct_ref(2), len = INT, flags = INT, addr = input_struct(sizeof!(sockaddr)), addr_len = INT; ["NETWORK"]);
+syscall!(recvfrom, fd = INT, ubuf = output_struct_ref(6), size = INT, flags = INT, addr = inout_struct(sizeof!(sockaddr)), addr_len = output_struct(4); ["NETWORK"]);
+syscall!(sendmsg, fd = INT, msg = input_struct(sizeof!(msghdr)), flags = INT; ["NETWORK"]);
+syscall!(recvmsg, fd = INT, msg = output_struct(sizeof!(msghdr)), flags = INT; ["NETWORK"]);
+syscall!(shutdown, fd = INT, how = INT; ["NETWORK"]);
+syscall!(bind, fd = INT, umyaddr = input_struct(sizeof!(sockaddr)), addrlen = INT; ["NETWORK"]);
+syscall!(listen, fd = INT, backlog = INT; ["NETWORK"]);
+syscall!(getsockname, fd = INT, usockaddr = output_struct(sizeof!(sockaddr)), usockaddr_len = inout_struct(4); ["NETWORK"]);
+syscall!(getpeername, fd = INT, usockaddr = output_struct(sizeof!(sockaddr)), usockaddr_len = inout_struct(4); ["NETWORK"]);
+syscall!(socketpair, family = INT, type = INT, protocol = INT, usockvec = input_struct(8); ["NETWORK"]);
+syscall!(setsockopt, fd = INT, level = INT, optname = INT, optval = input_struct_ref(4), optlen = INT; ["NETWORK"]);
+syscall!(getsockopt, fd = INT, level = INT, optname = INT, optval = ADDR, optlen = inout_struct(4); ["NETWORK"]);
+syscall!(clone, clone_flags = INT, newsp = ADDR, parent_tidptr = output_struct(sizeof!(pid_t)), child_tidptr = output_struct(sizeof!(pid_t)), tls_val = ADDR; ["PROCESS"]);
+syscall!(fork; ["PROCESS"]);
+syscall!(vfork; ["PROCESS"]);
+syscall!(execve, filename = STR, argv = ADDR, envp = ADDR; ["PROCESS"]);
+syscall!(exit, error_code = INT; ["PROCESS"]);
+syscall!(wait4, pid = INT, stat_addr = output_struct(4), options = INT, ru = inout_struct(sizeof!(rusage)); ["PROCESS"]);
+syscall!(kill, pid = input_struct(sizeof!(pid_t)), sig = INT; ["PROCESS"]);
+syscall!(uname, name = ADDR; []);
+syscall!(semget, key = INT, nsems = INT, semflg = INT; ["IPC"]);
+syscall!(semop, semid = INT, sops = input_struct(sizeof!(sembuf)), nsops = INT; ["IPC"]);
+syscall!(semctl, semid = INT, semnum = INT, cmd = INT, arg = INT; ["IPC"]);
+syscall!(shmdt, shmaddr = ADDR; ["IPC"]);
+syscall!(msgget, key = INT, msgflg = INT; ["IPC"]);
+syscall!(msgsnd, msqid = INT, msgp = input_struct_ref(2), msgsz = INT, msgflg = INT; ["IPC"]);
+syscall!(msgrcv, msqid = INT, msgp = output_struct_ref(6), msgsz = INT, msgtyp = INT, msgflg = INT; ["IPC"]);
+syscall!(msgctl, msqid = INT, cmd = INT, buf = input_struct(sizeof!(msqid_ds)); ["IPC"]);
+syscall!(fcntl, fd = INT, cmd = INT, arg = INT; ["DESC"]);
+syscall!(flock, fd = INT, operation = INT; ["DESC"]);
+syscall!(fsync, fd = INT; ["DESC"]);
+syscall!(fdatasync, fd = INT; ["DESC"]);
+syscall!(truncate, path = STR, length = INT; ["FILE"]);
+syscall!(ftruncate, fd = INT, length = INT; ["DESC"]);
+syscall!(getdents, fd = INT, dirent = output_struct(sizeof!(dirent)), count = INT; ["DESC"]);
+syscall!(getcwd, buf = output_struct_ref(1), size = INT; ["FILE"]);
+syscall!(chdir, filename = STR; ["FILE"]);
+syscall!(fchdir, fd = INT; ["DESC"]);
+syscall!(rename, oldname = STR, newname = STR; ["FILE"]);
+syscall!(mkdir, pathname = STR, mode = INT; ["FILE"]);
+syscall!(rmdir, pathname = STR; ["FILE"]);
+syscall!(creat, pathname = STR, mode = INT; ["DESC", "FILE"]);
+syscall!(link, oldname = STR, newname = STR; ["FILE"]);
+syscall!(unlink, pathname = STR; ["FILE"]);
+syscall!(symlink, oldname = STR, newname = STR; ["FILE"]);
+syscall!(readlink, path = STR, buf = output_struct_ref(6), bufsiz = INT; ["FILE"]);
+syscall!(chmod, pathname = STR, mode = INT; ["FILE"]);
+syscall!(fchmod, fd = INT, mode = INT; ["DESC"]);
+syscall!(chown, pathname = STR, owner = INT, group = INT; ["FILE"]);
+syscall!(fchown, fd = INT, owner = INT, group = INT; ["DESC"]);
+syscall!(lchown, pathname = STR, owner = INT, group = INT; ["FILE"]);
+syscall!(umask, mask = INT; []);
+syscall!(gettimeofday, tv = output_struct(sizeof!(timeval)), tz = output_struct(sizeof!(timezone)); ["CLOCK"]);
+syscall!(getrlimit, resource = INT, rlim = output_struct(sizeof!(rlimit)); []);
+syscall!(getrusage, who = INT, ru = inout_struct(sizeof!(rusage)); []);
+syscall!(sysinfo, info = output_struct(sizeof!(sysinfo)); []);
+syscall!(times, buf = output_struct(sizeof!(tms)); []);
+syscall!(ptrace, request = INT, pid = INT, addr = ADDR, data = ADDR; []);
+syscall!(getuid; ["CREDS", "PURE"]);
+syscall!(syslog, type = INT, buf = ADDR, len = INT; []);
+syscall!(getgid; ["CREDS", "PURE"]);
+syscall!(setuid, uid = INT; ["CREDS"]);
+syscall!(setgid, gid = INT; ["CREDS"]);
+syscall!(geteuid; ["CREDS", "PURE"]);
+syscall!(getegid; ["CREDS", "PURE"]);
+syscall!(setpgid, pid = INT, pgid = INT; []);
+syscall!(getppid; ["PURE"]);
+syscall!(getpgrp; ["PURE"]);
+syscall!(setsid; []);
+syscall!(setreuid, ruid = INT, euid = INT; ["CREDS"]);
+syscall!(setregid, rgid = INT, egid = INT; ["CREDS"]);
+syscall!(getgroups, gidsetsize = INT, grouplist = ADDR; ["CREDS"]);
+syscall!(setgroups, gidsetsize = INT, grouplist = ADDR; ["CREDS"]);
+syscall!(setresuid, ruid = INT, euid = INT, suid = INT; ["CREDS"]);
+syscall!(getresuid, ruid = output_struct(sizeof!(uid_t)), euid = output_struct(sizeof!(uid_t)), suid = output_struct(sizeof!(uid_t)); ["CREDS"]);
+syscall!(setresgid, rgid = INT, egid = INT, sgid = INT; ["CREDS"]);
+syscall!(getresgid, rgid = output_struct(sizeof!(gid_t)), egid = output_struct(sizeof!(gid_t)), sgid = output_struct(sizeof!(gid_t)); ["CREDS"]);
+syscall!(getpgid, pid = INT; []);
+syscall!(setfsuid, uid = INT; ["CREDS"]);
+syscall!(setfsgid, gid = INT; ["CREDS"]);
+syscall!(getsid, pid = INT; []);
+syscall!(capget, hdrp = INT, datap = INT; ["CREDS"]);
+syscall!(capset, hdrp = INT, datap = INT; ["CREDS"]);
+syscall!(rt_sigpending, set = output_struct(sizeof!(sigset_t)), sigsetsize = INT; ["SIGNAL"]);
+syscall!(rt_sigtimedwait, uthese = input_struct(sizeof!(sigset_t)), uinfo = output_struct(sizeof!(siginfo_t)), uts = input_struct(sizeof!(timespec)), sigsetsize = INT; ["SIGNAL"]);
+syscall!(rt_sigqueueinfo, pid = INT, sig = INT, uinfo = output_struct(sizeof!(siginfo_t)); ["PROCESS", "SIGNAL"]);
+syscall!(rt_sigsuspend, unewset = input_struct(sizeof!(sigset_t)), sigsetsize = INT; ["SIGNAL"]);
+syscall!(sigaltstack, uss = input_struct(sizeof!(stack_t)), uoss = output_struct(sizeof!(stack_t)); ["SIGNAL"]);
+syscall!(utime, filename = STR, times = output_struct(sizeof!(utimbuf)); ["FILE"]);
+syscall!(mknod, filename = STR, mode = INT, dev = INT; ["FILE"]);
+syscall!(uselib, library = STR; ["FILE"]);
+syscall!(personality, personality = INT; []);
+syscall!(ustat, dev = INT, ubuf = ADDR; ["STATFS_LIKE"]);
+syscall!(statfs, pathname = STR, buf = output_struct(sizeof!(statfs)); ["FILE", "STATFS", "STATFS_LIKE"]);
+syscall!(fstatfs, fd = INT, buf = output_struct(sizeof!(statfs)); ["FILE", "FSTATFS", "STATFS_LIKE"]);
+syscall!(sysfs, option = INT, arg1 = INT, arg2 = INT; []);
+syscall!(getpriority, which = INT, who = INT; []);
+syscall!(setpriority, which = INT, who = INT, niceval = INT; []);
+syscall!(sched_setparam, pid = INT, param = input_struct(sizeof!(sched_param)); []);
+syscall!(sched_getparam, pid = INT, param = output_struct(sizeof!(sched_param)); []);
+syscall!(sched_setscheduler, pid = INT, policy = INT, param = input_struct(sizeof!(sched_param)); []);
+syscall!(sched_getscheduler, pid = INT; []);
+syscall!(sched_get_priority_max, policy = INT; []);
+syscall!(sched_get_priority_min, policy = INT; []);
+syscall!(sched_rr_get_interval, pid = INT, interval = output_struct(sizeof!(timespec)); []);
+syscall!(mlock, start = ADDR, len = INT; ["MEMORY"]);
+syscall!(munlock, start = ADDR, len = INT; ["MEMORY"]);
+syscall!(mlockall, flags = INT; ["MEMORY"]);
+syscall!(munlockall; ["MEMORY"]);
+syscall!(vhangup; []);
+syscall!(modify_ldt, func = INT, ptr = ADDR, bytecount = INT; []);
+syscall!(pivot_root, new_root = STR, put_old = STR; ["FILE"]);
+syscall!(_sysctl, args = ADDR; []);
+syscall!(prctl, option = INT, arg2 = INT, arg3 = INT, arg4 = INT, arg5 = INT; ["CREDS"]);
+syscall!(arch_prctl, task = ADDR, code = INT, addr = ADDR; []);
+syscall!(adjtimex, buf = inout_struct(sizeof!(timex)); ["CLOCK"]);
+syscall!(setrlimit, resource = INT, rlim = input_struct(sizeof!(rlimit)); []);
+syscall!(chroot, filename = STR; ["FILE"]);
+syscall!(sync; []);
+syscall!(acct, name = STR; ["FILE"]);
+syscall!(settimeofday, tv = input_struct(sizeof!(timeval)), tz = input_struct(sizeof!(timezone)); ["CLOCK"]);
+syscall!(mount, dev_name = STR, dir_name = STR, type = STR, flags = INT, data = ADDR; ["FILE"]);
+syscall!(umount2, target = STR, flags = INT; ["FILE"]);
+syscall!(swapon, specialfile = STR, swap_flags = INT; ["FILE"]);
+syscall!(swapoff, specialfile = STR; ["FILE"]);
+syscall!(reboot, magic1 = INT, magic2 = INT, cmd = INT, arg = STR; []);
+syscall!(sethostname, name = STR, len = INT; []);
+syscall!(setdomainname, name = STR, len = INT; []);
+syscall!(iopl, level = INT; []);
+syscall!(ioperm, from = INT, num = INT, on = INT; []);
+syscall!(create_module, name = STR, size = INT; []);
+syscall!(init_module, umod = ADDR, len = INT, uargs = STR; []);
+syscall!(delete_module, name = STR, flags = INT; []);
+syscall!(get_kernel_syms, table = ADDR; []);
+syscall!(query_module, name = STR, which = INT, buf = input_struct_ref(3), bufsize = INT, ret = output_struct(8); []);
+syscall!(quotactl, cmd = INT, special = STR, id = INT, addr = ADDR; ["FILE"]);
+syscall!(nfsservctl, cmd = INT, argp = ADDR, resp = ADDR; []);
+syscall!(getpmsg, fildes = INT, ctlptr = ADDR, dataptr = ADDR, bandp = ADDR, flagsp = ADDR; ["NETWORK"]);
+syscall!(putpmsg, fildes = INT, ctlptr = ADDR, dataptr = ADDR, band = INT, flags = INT; ["NETWORK"]);
+syscall!(afs_syscall; []);
+syscall!(tuxcall; []);
+syscall!(security; []);
+syscall!(gettid; ["PURE"]);
+syscall!(readahead, fd = INT, offset = INT, count = INT; ["DESC"]);
+syscall!(setxattr, pathname = STR, name = STR, value = ADDR, size = INT, flags = INT; ["FILE"]);
+syscall!(lsetxattr, pathname = STR, name = STR, value = ADDR, size = INT, flags = INT; ["FILE"]);
+syscall!(fsetxattr, fd = INT, name = STR, value = ADDR, size = INT, flags = INT; ["DESC"]);
+syscall!(getxattr, pathname = STR, name = STR, value = ADDR, size = INT; ["FILE"]);
+syscall!(lgetxattr, pathname = STR, name = STR, value = ADDR, size = INT; ["FILE"]);
+syscall!(fgetxattr, fd = INT, name = STR, value = ADDR, size = INT; ["DESC"]);
+syscall!(listxattr, pathname = STR, list = STR, size = INT; ["FILE"]);
+syscall!(llistxattr, pathname = STR, list = STR, size = INT; ["FILE"]);
+syscall!(flistxattr, fd = INT, list = STR, size = INT; ["DESC"]);
+syscall!(removexattr, pathname = STR, name = STR; ["FILE"]);
+syscall!(lremovexattr, pathname = STR, name = STR; ["FILE"]);
+syscall!(fremovexattr, fd = INT, name = STR; ["DESC"]);
+syscall!(tkill, pid = INT, sig = INT; ["PROCESS", "SIGNAL"]);
+syscall!(time, tloc = output_struct(sizeof!(time_t)); ["CLOCK"]);
+syscall!(futex, uaddr = inout_struct(4), op = INT, val = INT, utime = inout_struct(sizeof!(timespec)), uaddr2 = inout_struct(4), val3 = INT; []);
+syscall!(sched_setaffinity, pid = INT, cpusetsize = INT, mask = input_struct(sizeof!(cpu_set_t)); []);
+syscall!(sched_getaffinity, pid = INT, cpusetsize = INT, mask = output_struct(sizeof!(cpu_set_t)); []);
+syscall!(set_thread_area, u_info = ADDR; []);
+syscall!(io_setup, nr_events = INT, ctxp = ADDR; ["MEMORY"]);
+syscall!(io_destroy, ctx = INT; ["MEMORY"]);
+syscall!(io_getevents, ctx_id = INT, min_nr = INT, nr = INT, events = ADDR, timeout = input_struct(sizeof!(timespec)); []);
+syscall!(io_submit, ctx_id = INT, nr = INT, iocbpp = ADDR; []);
+syscall!(io_cancel, ctx_id = INT, iocb = ADDR, result = ADDR; []);
+syscall!(get_thread_area, u_info = ADDR; []);
+syscall!(lookup_dcookie, cookie64 = INT, buf = input_struct_ref(2), len = INT; []);
+syscall!(epoll_create, size = INT; ["DESC"]);
+syscall!(epoll_ctl_old, epfd = INT, op = INT, event = ADDR; []);
+syscall!(epoll_wait_old, epfd = INT, events = ADDR, maxevents = INT; []);
+syscall!(remap_file_pages, start = INT, size = INT, prot = INT, pgoff = INT, flags = INT; ["MEMORY"]);
+syscall!(getdents64, fd = INT, dirent = output_struct(sizeof!(dirent64)), count = INT; ["DESC"]);
+syscall!(set_tid_address, tidptr = inout_struct(4); []);
+syscall!(restart_syscall; []);
+syscall!(semtimedop, semid = INT, tsops = ADDR, nsops = INT, timeout = input_struct(sizeof!(timespec)); ["IPC"]);
+syscall!(fadvise64, fd = INT, offset = INT, len = INT, advice = INT; ["DESC"]);
+syscall!(timer_create, which_clock = INT, timer_event_spec = input_struct(sizeof!(sigevent)), created_timer_id = output_struct(sizeof!(timer_t)); []);
+syscall!(timer_settime, timer_id = INT, flags = INT, new_setting = input_struct(sizeof!(itimerspec)), old_setting = output_struct(sizeof!(itimerspec)); []);
+syscall!(timer_gettime, timer_id = INT, setting = output_struct(sizeof!(itimerspec)); []);
+syscall!(timer_getoverrun, timer_id = INT; []);
+syscall!(timer_delete, timer_id = INT; []);
+syscall!(clock_settime, which_clock = INT, tp = input_struct(sizeof!(timespec)); ["CLOCK"]);
+syscall!(clock_gettime, which_clock = INT, tp = output_struct(sizeof!(timespec)); ["CLOCK"]);
+syscall!(clock_getres, which_clock = INT, tp = output_struct(sizeof!(timespec)); ["CLOCK"]);
+syscall!(clock_nanosleep, which_clock = INT, flags = INT, rqtp = input_struct(sizeof!(timespec)), rmtp = output_struct(sizeof!(timespec)); []);
+syscall!(exit_group, error_code = INT; ["PROCESS"]);
+syscall!(epoll_wait, epfd = INT, events = inout_struct(sizeof!(epoll_event)), maxevents = INT, timeout = INT; ["DESC"]);
+syscall!(epoll_ctl, epfd = INT, op = INT, fd = INT, event = input_struct(sizeof!(epoll_event)); ["DESC"]);
+syscall!(tgkill, tgid = INT, pid = INT, sig = INT; ["PROCESS"]);
+syscall!(utimes, filename = STR, utimes = inout_struct(sizeof!(timeval)); ["FILE"]);
+syscall!(vserver; []);
+syscall!(mbind, start = INT, len = INT, mode = INT, nmask = ADDR, maxnode = INT, flags = INT; ["MEMORY"]);
+syscall!(set_mempolicy, mode = INT, nmask = ADDR, maxnode = INT; ["MEMORY"]);
+syscall!(get_mempolicy, policy = input_struct(4), nmask = inout_struct(8), maxnode = INT, addr = ADDR, flags = INT; ["MEMORY"]);
+syscall!(mq_open, name = STR, oflag = INT, mode = INT, attr = inout_struct(sizeof!(mq_attr)); ["DESC"]);
+syscall!(mq_unlink, u_name = STR; []);
+syscall!(mq_timedsend, mqdes = INT, msg_ptr = STR, msg_len = INT, msg_prio = INT, abs_timeout = input_struct(sizeof!(timespec)); ["DESC"]);
+syscall!(mq_timedreceive, mqdes = INT, msg_ptr = STR, msg_len = INT, msg_prio = INT, abs_timeout = input_struct(sizeof!(timespec)); ["DESC"]);
+syscall!(mq_notify, mqdes = INT, notification = input_struct(sizeof!(sigevent)); ["DESC"]);
+syscall!(mq_getsetattr, mqdes = INT, u_mqstat = input_struct(sizeof!(mq_attr)), u_omqstat = output_struct(sizeof!(mq_attr)); ["DESC"]);
+syscall!(kexec_load, entry = INT, nr_segments = INT, segments = ADDR, flags = INT; []);
+syscall!(waitid, which = INT, pid = INT, infop = output_struct(sizeof!(siginfo_t)), options = INT, ru = output_struct(sizeof!(rusage)); ["PROCESS"]);
+syscall!(add_key, _type = STR, _description = STR, _payload = ADDR, plen = INT, ringid = INT; []);
+syscall!(request_key, _type = STR, _description = STR, _callout_info = STR, destringid = INT; []);
+syscall!(keyctl, option = INT, arg2 = INT, arg3 = INT, arg4 = INT, arg5 = INT; []);
+syscall!(ioprio_set, which = INT, who = INT, ioprio = INT; []);
+syscall!(ioprio_get, which = INT, who = INT; []);
+syscall!(inotify_init; ["DESC"]);
+syscall!(inotify_add_watch, fd = INT, pathname = STR, mask = INT; ["DESC", "FILE"]);
+syscall!(inotify_rm_watch, fd = INT, wd = INT; ["DESC"]);
+syscall!(migrate_pages, pid = INT, maxnode = INT, old_nodes = ADDR, new_nodes = ADDR; ["MEMORY"]);
+syscall!(openat, dfd = INT, filename = STR, flags = INT, mode = INT; ["DESC", "FILE"]);
+syscall!(mkdirat, dfd = INT, pathname = STR, mode = INT; ["DESC", "FILE"]);
+syscall!(mknodat, dfd = INT, filename = STR, mode = INT, dev = INT; ["DESC", "FILE"]);
+syscall!(fchownat, dfd = INT, filename = STR, user = INT, group = INT, flag = INT; ["DESC", "FILE"]);
+syscall!(futimesat, dfd = INT, filename = STR, utimes = input_struct(sizeof!(timeval)); ["DESC", "FILE"]);
+syscall!(newfstatat, dfd = INT, filename = STR, statbuf = output_struct(sizeof!(stat64)), flag = INT; ["DESC", "FILE", "FSTAT", "STAT_LIKE"]);
+syscall!(unlinkat, dfd = INT, pathname = STR, flag = INT; ["DESC", "FILE"]);
+syscall!(renameat, olddfd = INT, oldname = STR, newdfd = INT, newname = STR; ["DESC", "FILE"]);
+syscall!(linkat, olddfd = INT, oldname = STR, newdfd = INT, newname = STR, flags = INT; ["DESC", "FILE"]);
+syscall!(symlinkat, oldname = STR, newdfd = INT, newname = STR; ["DESC", "FILE"]);
+syscall!(readlinkat, dfd = INT, pathname = STR, buf = output_struct_ref(6), bufsiz = INT; ["DESC", "FILE"]);
+syscall!(fchmodat, dfd = INT, filename = STR, mode = INT; ["DESC", "FILE"]);
+syscall!(faccessat, dfd = INT, filename = STR, mode = INT; ["DESC", "FILE"]);
+syscall!(pselect6, nfds = INT, readfds = inout_struct(sizeof!(fd_set)), writefds = inout_struct(sizeof!(fd_set)), exceptfds = inout_struct(sizeof!(fd_set)), timeout = input_struct(sizeof!(timespec)), sigmask = input_struct(sizeof!(sigset_t)); ["DESC"]);
+syscall!(ppoll, fds = inout_struct(sizeof!(pollfd)), nfds = INT, timeout = input_struct(sizeof!(timespec)), sigmask = input_struct(sizeof!(sigset_t)), sigsetsize = INT; ["DESC"]);
+syscall!(unshare, unshare_flags = INT; []);
+syscall!(set_robust_list, head = ADDR, len = INT; []);
+syscall!(get_robust_list, pid = INT, head_ptr = ADDR, len_ptr = inout_struct(sizeof!(size_t)); []);
+syscall!(splice, fd_in = INT, off_in = inout_struct(sizeof!(loff_t)), fd_out = INT, off_out = inout_struct(sizeof!(loff_t)), len = INT, flags = INT; ["DESC"]);
+syscall!(tee, fd_in = INT, fd_out = INT, len = INT, flags = INT; ["DESC"]);
+syscall!(sync_file_range, fd = INT, offset = INT, nbytes = INT, flags = INT; ["DESC"]);
+syscall!(vmsplice, fd = INT, iov = input_struct(sizeof!(iovec)), nr_segs = INT, flags = INT; ["DESC"]);
+syscall!(move_pages, pid = INT, nr_pages = INT, pages = ADDR, nodes = ADDR, status = ADDR, flags = INT; ["MEMORY"]);
+syscall!(utimensat, dfd = INT, filename = STR, utimes = input_struct(sizeof!(timespec)), flags = INT; ["DESC", "FILE"]);
+syscall!(epoll_pwait, epfd = INT, events = inout_struct(sizeof!(epoll_event)), maxevents = INT, timeout = INT, sigmask = input_struct(sizeof!(sigset_t)), sigsetsize = INT; ["DESC"]);
+syscall!(signalfd, fd = INT, mask = inout_struct(sizeof!(sigset_t)), sizemask = INT; ["DESC", "SIGNAL"]);
+syscall!(timerfd_create, clockid = INT, flags = INT; ["DESC"]);
+syscall!(eventfd, count = INT; ["DESC"]);
+syscall!(fallocate, fd = INT, mode = INT, offset = INT, len = INT; ["DESC"]);
+syscall!(timerfd_settime, ufd = INT, flags = INT, new_value = input_struct(sizeof!(itimerspec)), old_value = output_struct(sizeof!(itimerspec)); ["DESC"]);
+syscall!(timerfd_gettime, ufd = INT, curr_value = output_struct(sizeof!(itimerspec)); ["DESC"]);
+syscall!(accept4, fd = INT, upeer_sockaddr = output_struct(sizeof!(sockaddr)), addrlen = output_struct(sizeof!(socklen_t)), flags = INT; ["NETWORK"]);
+syscall!(signalfd4, ufd = INT, user_mask = inout_struct(sizeof!(sigset_t)), sizemask = INT, flags = INT; ["DESC", "SIGNAL"]);
+syscall!(eventfd2, count = INT, flags = INT; ["DESC"]);
+syscall!(epoll_create1, flags = INT; ["DESC"]);
+syscall!(dup3, oldfd = INT, newfd = INT, flags = INT; ["DESC"]);
+syscall!(pipe2, fildes = input_struct(8), flags = INT; ["DESC"]);
+syscall!(inotify_init1, flags = INT; ["DESC"]);
+syscall!(preadv, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT, pos_l = INT, pos_h = INT; ["DESC"]);
+syscall!(pwritev, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT, pos_l = INT, pos_h = INT; ["DESC"]);
+syscall!(rt_tgsigqueueinfo, tgid = INT, pid = INT, sig = INT, uinfo = input_struct(sizeof!(siginfo_t)); ["PROCESS", "SIGNAL"]);
+syscall!(perf_event_open, attr_uptr = ADDR, pid = INT, cpu = INT, group_fd = INT, flags = INT; ["DESC"]);
+syscall!(recvmmsg, fd = INT, mmesg = ADDR, vlen = INT, flags = INT, timeout = input_struct(sizeof!(timespec)); ["NETWORK"]);
+syscall!(fanotify_init, flags = INT, event_f_flags = INT; ["DESC"]);
+syscall!(fanotify_mark, fanotify_fd = INT, flags = INT, mask = INT, fd = INT, pathname = STR; ["DESC", "FILE"]);
+syscall!(prlimit64, pid = INT, resource = INT, new_limit = input_struct(sizeof!(rlimit64)), old_limit = output_struct(sizeof!(rlimit64)); []);
+syscall!(name_to_handle_at, dfd = INT, filename = STR, handle = ADDR, mnt_id = output_struct(4), flags = INT; ["DESC", "FILE"]);
+syscall!(open_by_handle_at, mountdirfd = INT, handle = ADDR, flags = INT; ["DESC"]);
+syscall!(clock_adjtime, which_clock = INT, tx = inout_struct(sizeof!(timex)); ["CLOCK"]);
+syscall!(syncfs, fd = INT; ["DESC"]);
+syscall!(sendmmsg, fd = INT, mmesg = ADDR, vlen = INT, flags = INT; ["NETWORK"]);
+syscall!(setns, fd = INT, nstype = INT; ["DESC"]);
+syscall!(getcpu, cpu = output_struct(4), node = output_struct(4), tcache = ADDR; []);
+syscall!(process_vm_readv, pid = INT, lvec = input_struct(sizeof!(iovec)), liovcnt = INT, rvec = input_struct(sizeof!(iovec)), riovcnt = INT, flags = INT; ["MEMORY"]);
+syscall!(process_vm_writev, pid = INT, lvec = input_struct(sizeof!(iovec)), liovcnt = INT, rvec = input_struct(sizeof!(iovec)), riovcnt = INT, flags = INT; ["MEMORY"]);
+syscall!(kcmp, pid1 = INT, pid2 = INT, type = INT, idx1 = INT, idx2 = INT; []);
+syscall!(finit_module, fd = INT, uargs = STR, flags = INT; ["DESC"]);
+syscall!(sched_setattr, pid = INT, attr = ADDR, flags = INT; []);
+syscall!(sched_getattr, pid = INT, attr = ADDR, size = INT, flags = INT; []);
+syscall!(renameat2, olddfd = INT, oldname = STR, newdfd = INT, newname = STR, flags = INT; ["DESC", "FILE"]);
+syscall!(seccomp, op = INT, flags = INT, uargs = ADDR; []);
+syscall!(getrandom, buf = output_struct_ref(1), buflen = INT, flags = INT; []);
+syscall!(memfd_create, uname = STR, flags = INT; ["DESC"]);
+syscall!(kexec_file_load, kernel_fd = INT, initrd_fd = INT, cmdline_len = INT, cmdline_ptr = STR, flags = INT; ["DESC"]);
+syscall!(bpf, cmd = INT, uattr = ADDR, size = INT; ["DESC"]);
+syscall!(execveat, fd = INT, path = STR, argv = ADDR, envp = ADDR, flags = INT; ["DESC", "PROCESS"]);
+syscall!(userfaultfd, flags = INT; ["DESC"]);
+syscall!(membarrier, cmd = INT, flags = INT, cpu_id = INT; []);
+syscall!(mlock2, addr = ADDR, len = INT, flags = INT; ["MEMORY"]);
+syscall!(copy_file_range, fd_in = INT, off_in = input_struct(sizeof!(loff_t)), fd_out = INT, off_out = input_struct(sizeof!(loff_t)), len = INT, flags = INT; ["DESC"]);
+syscall!(preadv2, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT, pos_l = INT, pos_h = INT, flags = INT; ["DESC"]);
+syscall!(pwritev2, fd = INT, vec = input_struct(sizeof!(iovec)), vlen = INT, pos_l = INT, pos_h = INT, flags = INT; ["DESC"]);
+syscall!(pkey_mprotect, addr = ADDR, len = INT, prot = INT, pkey = INT; ["MEMORY"]);
+syscall!(pkey_alloc, flags = INT, init_val = INT; []);
+syscall!(pkey_free, pkey = INT; []);
+syscall!(statx, dfd = INT, path = STR, flags = INT, mask = INT, statxbuf = ADDR; ["DESC", "FILE", "FSTAT", "STAT_LIKE"]);
+syscall!(io_pgetevents, ctx_id = INT, min_nr = INT, nr = INT, events = ADDR, timeout = input_struct(sizeof!(timespec)), rsb = ADDR; []);
+syscall!(rseq, rseq = ADDR, rseq_len = INT, flags = INT, sig = INT; []);
+syscall!(fstatat, dirfd = INT, pathname = STR, statbuf = output_struct(sizeof!(stat)), flags = INT; ["FILE"]);
+syscall!(sync_file_range2, fd = INT, flags = INT, offset = INT, nbytes = INT; ["FILE"]);
+syscall!(pidfd_send_signal, pidfd = INT, sig = INT, info = input_struct(sizeof!(siginfo_t)), flags = INT; ["DESC", "PROCESS", "SIGNAL"]);
+syscall!(io_uring_setup, entries = INT, p = ADDR; []);
+syscall!(io_uring_enter, fd = INT, to_submit = INT, min_complete = INT, flags = INT, sig = input_struct(sizeof!(sigset_t)), sigsz = INT; []);
+syscall!(io_uring_register, fd = INT, opcode = INT, arg = ADDR, nr_args = INT; []);
+syscall!(open_tree, dfd = INT, filename = STR, flags = INT; ["DESC", "FILE"]);
+syscall!(move_mount, from_dfd = INT, from_pathname = STR, to_dfd = INT, to_pathname = STR, flags = INT; ["DESC", "FILE"]);
+syscall!(fsopen, fs_name = STR, flags = INT; ["DESC"]);
+syscall!(fsconfig, fd = INT, cmd = INT, key = STR, value = ADDR, aux = INT; ["DESC"]);
+syscall!(fsmount, fs_fd = INT, flags = INT, mttr_flags = INT; ["DESC"]);
+syscall!(fspick, dirfd = INT, pathname = STR, flags = INT; ["DESC"]);
+syscall!(pidfd_open, pid = INT, flags = INT; ["DESC", "PROCESS"]);
+syscall!(clone3, uargs = ADDR, size = INT; ["PROCESS"]);
+syscall!(close_range, fd = INT, max_fd = INT, flags = INT; ["DESC"]);
+syscall!(openat2, dirfd = INT, pathname = STR, how = ADDR, size = INT; ["DESC", "FILE"]);
+syscall!(pidfd_getfd, pidfd = INT, fd = INT, flags = INT; ["DESC", "PROCESS"]);
+syscall!(faccessat2, dirfd = INT, pathname = STR, mode = INT, flags = INT; ["DESC", "FILE"]);
+syscall!(process_madvise, pid = INT, vec = input_struct(sizeof!(iovec)), vlen = INT, advice = INT, flags = INT; ["MEMORY"]);
+syscall!(epoll_pwait2, epfd = INT, events = output_struct(sizeof!(epoll_event)), maxevents = INT, timeout = input_struct(sizeof!(timespec)), sigmask = input_struct(sizeof!(sigset_t)), sigsetsize = INT; ["DESC"]);
+syscall!(mount_setattr, dfd = INT, path = ADDR, flags = INT, uattr = ADDR, usize = INT; ["DESC"]);
+syscall!(quotactl_fd, fd = INT, cmd = INT, id = INT, addr = ADDR; ["DESC"]);
+syscall!(landlock_create_ruleset, attr = ADDR, size = INT, flags = INT; []);
+syscall!(landlock_add_rule, ruleset_fd = INT, rule_type = INT, rule_attr = ADDR, flags = INT; []);
+syscall!(landlock_restrict_self, ruleset_fd = INT, flags = INT; []);
+syscall!(memfd_secret, flags = INT; ["MEMORY"]);
+syscall!(process_mrelease, pidfd = INT, flags = INT; ["MEMORY", "DESC"]);
+syscall!(futex_waitv, waiters = ADDR, nr_futexes = INT, flags = INT, timeout = input_struct(sizeof!(timespec)), clockid = INT; []);
+syscall!(set_mempolicy_home_node, start = INT, len = INT, home_node = INT, flags = INT; ["MEMORY"]);
