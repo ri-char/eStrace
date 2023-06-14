@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use aya::maps::AsyncPerfEventArray;
@@ -27,6 +27,9 @@ pub struct Args {
     #[clap(short, long)]
     /// Target uid
     uid: Option<u32>,
+    /// filter(split by ','). All possible values: NETWORK,FSTAT,DESC,MEMORY,SIGNAL,STATFS_LIKE,IPC,PROCESS,STAT_LIKE,FSTATFS,LSTAT,STATFS,CREDS,FILE,PURE,CLOCK,STAT
+    #[clap(short, long)]
+    filter: Option<String>,
 }
 
 lazy_static::lazy_static! {
@@ -82,7 +85,16 @@ fn init_bpf(args: &Args) -> Result<()> {
 
     let mut syscall_arg_table: aya::maps::HashMap<_, u64, [u16; 6]> =
         aya::maps::HashMap::try_from(bpf.take_map("SYSCALL_ARG_TABLE").unwrap())?;
+    let allow_tags = args
+        .filter
+        .as_ref()
+        .map(|s| s.split(',').collect::<HashSet<_>>());
     for (sysno, v) in syscall_info::SYSCALL_ARG_TABLE.iter().enumerate() {
+        if let Some(allow_tags) = &allow_tags {
+            if allow_tags.is_disjoint(&v.tags.iter().copied().collect()) {
+                continue;
+            }
+        }
         let mut map_element: [u16; 6] = [0; 6];
         for (i, element) in v.args.iter().enumerate() {
             map_element[i] = ((element.0.bits() as u16) << 8) | element.1 as u16;

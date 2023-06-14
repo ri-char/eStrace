@@ -15,6 +15,7 @@ pub struct Options {
 enum Command {
     BuildEbpf(build_ebpf::Options),
     Run(run::Options),
+    Build(run::Options),
 }
 
 fn main() {
@@ -24,6 +25,7 @@ fn main() {
     let ret = match opts.command {
         BuildEbpf(opts) => build_ebpf::build_ebpf(opts),
         Run(opts) => run::run(opts),
+        Build(opts) => run::build(&opts),
     };
 
     if let Err(e) = ret {

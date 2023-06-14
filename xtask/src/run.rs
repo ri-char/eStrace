@@ -22,7 +22,7 @@ pub struct Options {
 }
 
 /// Build the project
-fn build(opts: &Options) -> Result<(), anyhow::Error> {
+pub fn build(opts: &Options) -> Result<(), anyhow::Error> {
     // build our ebpf program followed by our application
     build_ebpf(BuildOptions {
         release: opts.release,
@@ -40,6 +40,11 @@ fn build(opts: &Options) -> Result<(), anyhow::Error> {
         .status()
         .expect("failed to build userspace");
     assert!(status.success());
+    println!(
+        "The result is at target/{}/{}/estrace",
+        opts.arch,
+        if opts.release { "release" } else { "debug" }
+    );
     Ok(())
 }
 
