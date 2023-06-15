@@ -1,5 +1,7 @@
-name: Rust
+name: build
+
 on: [push, pull_request]
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -13,6 +15,7 @@ jobs:
       with:
         toolchain: nightly
         targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+        components: rust-src
 
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
