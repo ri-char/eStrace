@@ -132,8 +132,23 @@ fn init_bpf(args: &Args) -> Result<()> {
     Ok(())
 }
 
+fn bump_memlock_rlimit() -> Result<(), anyhow::Error> {
+    let rlimit = libc::rlimit {
+        rlim_cur: 128 << 20,
+        rlim_max: 128 << 20,
+    };
+
+    if unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlimit) } != 0 {
+        anyhow::bail!("Failed to increase rlimit");
+    }
+
+    Ok(())
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    bump_memlock_rlimit()?;
+
     let args = Args::parse();
     if matches!((args.pid, args.tid, args.uid), (None, None, None)) {
         println!(
