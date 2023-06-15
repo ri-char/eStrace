@@ -1,0 +1,32 @@
+name: lint
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          components: rustfmt,clippy,rust-src
+
+      - name: Check formatting
+        run: |
+          cargo fmt --all -- --check
+      - name: Check eBPF formatting
+        run: |
+          cargo fmt --all --manifest-path ./ebpf/Cargo.toml -- --check
+      - name: Create dummy eBPF binary
+        run: mkdir -p target/bpfel-unknown-none/debug && touch target/bpfel-unknown-none/debug/ebpf
+      - name: Run clippy
+        run: |
+          cargo clippy --workspace -- --deny warnings
+      - name: Run eBPF clippy
+        run: |
+          cd ebpf && cargo clippy -- --deny warnings

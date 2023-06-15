@@ -29,7 +29,7 @@ pub fn build(opts: &Options) -> Result<(), anyhow::Error> {
     })
     .context("Error while building eBPF program")?;
 
-    let mut args = vec!["build"];
+    let mut args = vec!["build", "--package", "estrace"];
     let target = format!("--target={}", opts.arch);
     args.push(&target);
     if opts.release {

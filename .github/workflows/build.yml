@@ -1,0 +1,46 @@
+name: build
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+        components: rust-src
+
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: lld
+        version: 1.0
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Prereqs
+      run: cargo install bpf-linker
+
+    - name: Build x86_64
+      run: cargo xtask build --release
+
+    - name: Upload x86_64 Building
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: estrace-x86_64-unknown-linux-musl
+        path: target/x86_64-unknown-linux-musl/release/estrace
+
+    - name: Build AArch64
+      run: cargo xtask build --arch aarch64-unknown-linux-musl --release
+
+    - name: Upload AArch64 Building
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: estrace-aarch64-unknown-linux-musl
+        path: target/aarch64-unknown-linux-musl/release/estrace
