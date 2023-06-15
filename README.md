@@ -22,22 +22,26 @@ Options:
 ### Setup
 
 ```bash
+# check lld
+ld.lld -v
+rustup target add x84_64-unknown-linux-musl
 cargo install bpf-linker
 ```
 And for android:
 ```bash
-rustup target add aarch64-linux-android
-cat << EOF
-[target.aarch64-linux-android]
-linker = "<SDK>/Sdk/ndk/<NDK Version>/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang"
-EOF >> ~/.cargo/config.toml
+rustup target add aarch64-unknown-linux-musl
 ```
 
 ### Build
 ```bash
 cargo xtask build
-cargo xtask build --arch aarch64-linux-android
+cargo xtask build --arch aarch64-unknown-linux-musl
+
+# release
+cargo xtask build --release
+cargo xtask build --arch aarch64-unknown-linux-musl --release
 ```
+
 ### Build and Run
 ```bash
 cargo xtask run -- <args>
