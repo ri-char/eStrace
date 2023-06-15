@@ -12,7 +12,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
-        targets: bpfel-unknown-none,x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
+        targets: x86_64-unknown-linux-musl,aarch64-unknown-linux-musl
 
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
