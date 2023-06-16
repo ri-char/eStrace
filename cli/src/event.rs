@@ -13,10 +13,7 @@ pub struct Event {
 
 impl Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        #[cfg(target_arch = "x86_64")]
-        let sysname = syscalls::x86_64::Sysno::new(self.syscall as usize);
-        #[cfg(target_arch = "aarch64")]
-        let sysname = syscalls::aarch64::Sysno::new(self.syscall as usize);
+        let sysname = crate::Sysno::new(self.syscall as usize);
         let syscall_name = sysname
             .map(|w| w.name().to_string())
             .unwrap_or_else(|| format!("syscall_{}", self.syscall));
