@@ -4,7 +4,7 @@ use anyhow::Result;
 use bitflags::bitflags;
 use regex::Regex;
 
-use crate::syscall_info::SYSCALL_ARG_TABLE;
+use crate::syscall_info::arch::SYSCALL_ARG_TABLE;
 
 bitflags! {
     #[derive(Clone, Copy)]

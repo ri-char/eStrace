@@ -7,7 +7,7 @@ use aya_bpf::{
         bpf_probe_read_user_str_bytes,
     },
     macros::{map, tracepoint},
-    maps::{HashMap, PerCpuArray, PerfEventByteArray},
+    maps::{HashMap, PerfEventByteArray},
     programs::TracePointContext,
 };
 use common::{ArgType, STR_MAX_LENGTH};
@@ -20,52 +20,26 @@ pub static mut RECORD_LOGS: PerfEventByteArray = PerfEventByteArray::new(0);
 
 #[map]
 static mut CONTEXT: HashMap<u32, [usize; 6]> = HashMap::with_max_entries(64, 0);
+
 #[map]
-static mut OUTPUT_BUF: PerCpuArray<u8> =
-    PerCpuArray::with_max_entries((17 + STR_MAX_LENGTH) as u32, 0);
-
-#[no_mangle]
-static TRAGET_PID: u32 = !0;
-
-#[no_mangle]
-static TRAGET_TID: u32 = !0;
-
-#[no_mangle]
-static TRAGET_UID: u32 = !0;
-
-#[no_mangle]
-static SELF_PID: u32 = 0;
-
-#[inline(always)]
-fn get_target_pid() -> u32 {
-    unsafe { core::ptr::read_volatile(&TRAGET_PID) }
-}
-
-#[inline(always)]
-fn get_target_tid() -> u32 {
-    unsafe { core::ptr::read_volatile(&TRAGET_TID) }
-}
-
-#[inline(always)]
-fn get_target_uid() -> u32 {
-    unsafe { core::ptr::read_volatile(&TRAGET_UID) }
-}
+static mut TRAGET_PID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
+#[map]
+static mut TRAGET_TID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
+#[map]
+static mut TRAGET_UID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
 
 fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let pid_tid = bpf_get_current_pid_tgid();
     let pid = (pid_tid >> 32) as u32;
     let tid = pid_tid as u32;
-    if (get_target_pid() != !0 && pid != get_target_pid()) || pid == SELF_PID {
+    if unsafe {
+        TRAGET_PID.get(&pid).is_none()
+            && TRAGET_TID.get(&tid).is_none()
+            && TRAGET_UID
+                .get(&(bpf_get_current_uid_gid() as u32))
+                .is_none()
+    } {
         return Ok(());
-    }
-    if get_target_tid() != !0 && tid != get_target_tid() {
-        return Ok(());
-    }
-    if get_target_uid() != !0 {
-        let uid = bpf_get_current_uid_gid() as u32;
-        if uid != get_target_uid() {
-            return Ok(());
-        }
     }
     let mut send_byte = [0u8; 19 + STR_MAX_LENGTH];
     let syscall_number = unsafe { ctx.read_at::<u64>(8)? };
@@ -133,17 +107,14 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let pid_tid = bpf_get_current_pid_tgid();
     let pid = (pid_tid >> 32) as u32;
     let tid = pid_tid as u32;
-    if (get_target_pid() != !0 && pid != get_target_pid()) || pid == SELF_PID {
+    if unsafe {
+        TRAGET_PID.get(&pid).is_none()
+            && TRAGET_TID.get(&tid).is_none()
+            && TRAGET_UID
+                .get(&(bpf_get_current_uid_gid() as u32))
+                .is_none()
+    } {
         return Ok(());
-    }
-    if get_target_tid() != !0 && tid != get_target_tid() {
-        return Ok(());
-    }
-    if get_target_uid() != !0 {
-        let uid = bpf_get_current_uid_gid() as u32;
-        if uid != get_target_uid() {
-            return Ok(());
-        }
     }
     let mut send_byte = [0u8; 19 + STR_MAX_LENGTH];
     let syscall_number = unsafe { ctx.read_at::<u64>(8)? };

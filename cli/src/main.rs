@@ -2,7 +2,7 @@ use anyhow::Result;
 use aya::maps::AsyncPerfEventArray;
 use aya::programs::TracePoint;
 use aya::util::online_cpus;
-use aya::{include_bytes_aligned, BpfLoader, Btf};
+use aya::{include_bytes_aligned, Bpf};
 use bytes::{Buf, BytesMut};
 use clap::Parser;
 use colored::Colorize;
@@ -23,15 +23,8 @@ mod syscall_info;
 
 #[derive(Parser)]
 pub struct Args {
-    #[clap(short, long)]
-    /// Target pid
-    pid: Option<u32>,
-    #[clap(short, long)]
-    /// Target tid
-    tid: Option<u32>,
-    #[clap(short, long)]
-    /// Target uid
-    uid: Option<u32>,
+    #[command(flatten)]
+    target: TargetArg,
     /// Trace only the specified set of system calls.  syscall_set is defined as [!]value[,value], and value can be one of the following:
     ///
     /// syscall      Trace specific syscall, specified by its name (see syscalls(2) for a reference, but also see NOTES).
@@ -81,6 +74,22 @@ pub struct Args {
     filter: Option<String>,
 }
 
+#[derive(clap::Args)]
+#[group(required = true, multiple = true)]
+struct TargetArg {
+    /// Target pid
+    #[clap(short, long)]
+    pid: Vec<u32>,
+
+    /// Target tid
+    #[clap(short, long)]
+    tid: Vec<u32>,
+
+    /// Target uid
+    #[clap(short, long)]
+    uid: Vec<u32>,
+}
+
 lazy_static::lazy_static! {
     static ref PROCESSING_EVENTS: Mutex<HashMap<u32, Event>> = Mutex::new(HashMap::new());
 }
@@ -119,23 +128,17 @@ async fn handle_event(byte: &mut BytesMut) {
     }
 }
 
-fn init_bpf(args: &Args) -> Result<()> {
+fn init_bpf(args: &Args) -> Result<Bpf> {
     #[cfg(debug_assertions)]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/ebpf");
     #[cfg(not(debug_assertions))]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/release/ebpf");
-    let mut bpf = BpfLoader::new()
-        .btf(Btf::from_sys_fs().ok().as_ref())
-        .set_global("TRAGET_PID", &args.pid.unwrap_or(!0))
-        .set_global("TRAGET_TID", &args.tid.unwrap_or(!0))
-        .set_global("TRAGET_UID", &args.uid.unwrap_or(!0))
-        .set_global("SELF_PID", &std::process::id())
-        .load(bpf_data)?;
+    let mut bpf = Bpf::load(bpf_data)?;
 
     let mut syscall_arg_table: aya::maps::HashMap<_, u64, [u16; 6]> =
-        aya::maps::HashMap::try_from(bpf.take_map("SYSCALL_ARG_TABLE").unwrap())?;
+        bpf.take_map("SYSCALL_ARG_TABLE").unwrap().try_into()?;
     let filiter = filter::Filter::new(args.filter.as_deref())?;
-    for (sysno, v) in syscall_info::SYSCALL_ARG_TABLE.iter().enumerate() {
+    for (sysno, v) in syscall_info::arch::SYSCALL_ARG_TABLE.iter().enumerate() {
         if !filiter.check(sysno as u64) {
             continue;
         }
@@ -145,13 +148,37 @@ fn init_bpf(args: &Args) -> Result<()> {
         }
         syscall_arg_table.insert(sysno as u64, map_element, 0)?;
     }
+    if !args.target.pid.is_empty() {
+        let mut map: aya::maps::HashMap<_, u32, u8> =
+            bpf.take_map("TRAGET_PID").unwrap().try_into()?;
+        for pid in &args.target.pid {
+            map.insert(pid, 0, 0)?;
+        }
+        std::mem::forget(map);
+    }
+    if !args.target.tid.is_empty() {
+        let mut map: aya::maps::HashMap<_, u32, u8> =
+            bpf.take_map("TRAGET_TID").unwrap().try_into()?;
+        for tid in &args.target.tid {
+            map.insert(tid, 0, 0)?;
+        }
+        std::mem::forget(map);
+    }
+    if !args.target.uid.is_empty() {
+        let mut map: aya::maps::HashMap<_, u32, u8> =
+            bpf.take_map("TRAGET_UID").unwrap().try_into()?;
+        for uid in &args.target.uid {
+            map.insert(uid, 0, 0)?;
+        }
+        std::mem::forget(map);
+    }
 
     let mut record: AsyncPerfEventArray<_> = bpf.take_map("RECORD_LOGS").unwrap().try_into()?;
 
     for cpu_id in online_cpus()? {
         let mut buf = record.open(cpu_id, None)?;
         tokio::spawn(async move {
-            let mut buffers = vec![BytesMut::with_capacity(17 + STR_MAX_LENGTH); 50];
+            let mut buffers = vec![BytesMut::with_capacity(19 + STR_MAX_LENGTH); 512];
 
             loop {
                 let events = buf.read_events(&mut buffers).await.unwrap();
@@ -172,8 +199,7 @@ fn init_bpf(args: &Args) -> Result<()> {
     let program: &mut TracePoint = bpf.program_mut("exit_handle").unwrap().try_into()?;
     program.load()?;
     program.attach("raw_syscalls", "sys_exit")?;
-    std::mem::forget(bpf);
-    Ok(())
+    Ok(bpf)
 }
 
 fn bump_memlock_rlimit() -> Result<()> {
@@ -192,13 +218,9 @@ fn bump_memlock_rlimit() -> Result<()> {
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let args = Args::parse();
-
-    if matches!((args.pid, args.tid, args.uid), (None, None, None)) {
-        anyhow::bail!("You must specify at least one of pid, tid, uid");
-    }
-
     bump_memlock_rlimit()?;
-    init_bpf(&args)?;
+    let bpf = init_bpf(&args)?;
     tokio::signal::ctrl_c().await?;
+    std::mem::drop(bpf);
     Ok(())
 }

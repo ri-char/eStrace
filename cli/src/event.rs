@@ -2,6 +2,8 @@ use bytes::Bytes;
 use colored::Colorize;
 use std::fmt::Display;
 
+use crate::syscall_info::formatter::VOID_ARG_FORMATTER;
+
 #[derive(Debug)]
 pub struct Event {
     pub tid: u32,
@@ -17,7 +19,8 @@ impl Display for Event {
         let syscall_name = sysname
             .map(|w| w.name().to_string())
             .unwrap_or_else(|| format!("syscall_{}", self.syscall));
-        let syscall_arg_name = crate::syscall_info::SYSCALL_ARG_TABLE.get(self.syscall as usize);
+        let syscall_arg_name =
+            crate::syscall_info::arch::SYSCALL_ARG_TABLE.get(self.syscall as usize);
 
         write!(
             f,
@@ -46,14 +49,19 @@ impl Display for Event {
                 }
             }
             if let Some((value, str)) = item {
-                if str.is_empty() {
+                let formatter = if let Some(syscall_info) = syscall_arg_name {
+                    syscall_info.args[i].2
+                } else {
+                    &VOID_ARG_FORMATTER
+                };
+                if !formatter.need_to_print(str) {
                     write!(f, "{}", format!("0x{:x}", value).yellow())?;
                 } else {
                     write!(
                         f,
                         "{} = {}",
                         format!("0x{:x}", value).yellow(),
-                        format!("{:?}", str).italic()
+                        formatter.format(str).italic()
                     )?;
                 }
             } else {
