@@ -2,6 +2,8 @@
 
 eStrace(eBPF syscall trace) is a tool that traces system calls using eBPF. Compared to strace, it is more flexible and harder to detect. It currently supports two architectures: x86_64 and aarch64. With eStrace, you can conveniently debug and analyze your Linux/Android applications.
 
+It is recommended to use kernel version 5.15 or higher when running it.
+
 ## Usage
 
 ```bash
@@ -76,7 +78,7 @@ Options:
 ```bash
 # check lld
 ld.lld -v
-rustup target add x84_64-unknown-linux-musl
+rustup target add x86_64-unknown-linux-musl
 cargo install bpf-linker
 ```
 And for android:
@@ -101,5 +103,4 @@ cargo xtask run -- <args>
 
 ## ToDo
 
-- Parse the structure of parameters.
 - Support for additional architectures.
