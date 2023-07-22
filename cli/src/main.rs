@@ -202,23 +202,28 @@ fn init_bpf(args: &Args) -> Result<Bpf> {
     Ok(bpf)
 }
 
-fn bump_memlock_rlimit() -> Result<()> {
+fn bump_memlock_rlimit() {
+    // Bump the memlock rlimit. This is needed for older kernels that don't use the
+    // new memcg based accounting, see https://lwn.net/Articles/837122/
     let rlimit = libc::rlimit {
-        rlim_cur: 128 << 20,
-        rlim_max: 128 << 20,
+        rlim_cur: libc::RLIM_INFINITY,
+        rlim_max: libc::RLIM_INFINITY,
     };
 
-    if unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlimit) } != 0 {
-        anyhow::bail!("Failed to increase rlimit");
+    let ret = unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlimit) };
+    if ret != 0 {
+        println!(
+            "{} remove limit on locked memory failed, ret is: {}",
+            "Warning:".yellow().bold(),
+            ret
+        );
     }
-
-    Ok(())
 }
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    bump_memlock_rlimit()?;
+    bump_memlock_rlimit();
     let bpf = init_bpf(&args)?;
     tokio::signal::ctrl_c().await?;
     std::mem::drop(bpf);
