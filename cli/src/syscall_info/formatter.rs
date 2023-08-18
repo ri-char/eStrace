@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use aligners::{alignment, AlignedBytes};
 use bytes::Bytes;
 
 pub trait ArgFormatter {
@@ -54,7 +55,8 @@ where
         arg.len() == std::mem::size_of::<T>()
     }
     fn format(&self, arg: &Bytes) -> String {
-        let new_type: &T = unsafe { &*(arg.as_ptr() as *const T) };
+        let aligned = AlignedBytes::<alignment::Eight>::from(arg.to_vec());
+        let new_type: &T = unsafe { &*(aligned.as_ptr() as *const T) };
         format!("{:x?}", new_type)
     }
 }
