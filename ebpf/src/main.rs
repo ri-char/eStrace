@@ -197,12 +197,12 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     Ok(())
 }
 
-#[tracepoint(name = "enter_handle")]
+#[tracepoint]
 pub fn enter_syscall(ctx: TracePointContext) {
     let _ = enter_syscall_inner(ctx);
 }
 
-#[tracepoint(name = "exit_handle")]
+#[tracepoint]
 pub fn exit_syscall(ctx: TracePointContext) {
     let _ = exit_syscall_inner(ctx);
 }

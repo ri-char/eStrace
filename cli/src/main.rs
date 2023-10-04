@@ -192,11 +192,11 @@ fn init_bpf(args: &Args) -> Result<Bpf> {
         });
     }
 
-    let program: &mut TracePoint = bpf.program_mut("enter_handle").unwrap().try_into()?;
+    let program: &mut TracePoint = bpf.program_mut("enter_syscall").unwrap().try_into()?;
     program.load()?;
     program.attach("raw_syscalls", "sys_enter")?;
 
-    let program: &mut TracePoint = bpf.program_mut("exit_handle").unwrap().try_into()?;
+    let program: &mut TracePoint = bpf.program_mut("exit_syscall").unwrap().try_into()?;
     program.load()?;
     program.attach("raw_syscalls", "sys_exit")?;
     Ok(bpf)
