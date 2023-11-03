@@ -24,7 +24,13 @@ mod syscall_info;
 #[derive(Parser)]
 pub struct Args {
     #[command(flatten)]
-    target: TargetArg,
+    include: Option<IncludeArg>,
+    #[command(flatten)]
+    exclude: Option<ExcludeArg>,
+
+    /// Capture all process
+    #[arg(long)]
+    all: bool,
     /// Trace only the specified set of system calls.  syscall_set is defined as [!]value[,value], and value can be one of the following:
     ///
     /// syscall      Trace specific syscall, specified by its name (see syscalls(2) for a reference, but also see NOTES).
@@ -74,9 +80,9 @@ pub struct Args {
     filter: Option<String>,
 }
 
-#[derive(clap::Args)]
-#[group(required = true, multiple = true)]
-struct TargetArg {
+#[derive(clap::Args, Clone)]
+#[group(required = false, multiple = true)]
+struct IncludeArg {
     /// Target pid
     #[clap(short, long)]
     pid: Vec<u32>,
@@ -90,12 +96,40 @@ struct TargetArg {
     uid: Vec<u32>,
 }
 
+#[derive(clap::Args, Clone)]
+#[group(required = false, multiple = true)]
+struct ExcludeArg {
+    /// Exclude pid
+    #[clap(long)]
+    exclude_pid: Vec<u32>,
+
+    /// Exclude tid
+    #[clap(long)]
+    exclude_tid: Vec<u32>,
+
+    /// Exclude uid
+    #[clap(long)]
+    exclude_uid: Vec<u32>,
+
+    #[clap(long)]
+    /// Exclude the estrace itself
+    exclude_self: bool,
+}
+
+#[derive(Debug)]
+struct BpfArg {
+    exclude_mode: bool,
+    pid: Vec<u32>,
+    tid: Vec<u32>,
+    uid: Vec<u32>,
+    filiter: filter::Filter,
+}
+
 lazy_static::lazy_static! {
     static ref PROCESSING_EVENTS: Mutex<HashMap<u32, Event>> = Mutex::new(HashMap::new());
 }
 
 async fn handle_event(byte: &mut BytesMut) {
-    // println!("{:?}", byte);
     let ty = byte.get_u8();
     let tid = byte.get_u32_le();
     let pid = byte.get_u32_le();
@@ -128,7 +162,7 @@ async fn handle_event(byte: &mut BytesMut) {
     }
 }
 
-fn init_bpf(args: &Args) -> Result<Bpf> {
+fn init_bpf(args: &BpfArg) -> Result<Bpf> {
     #[cfg(debug_assertions)]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/ebpf");
     #[cfg(not(debug_assertions))]
@@ -137,9 +171,8 @@ fn init_bpf(args: &Args) -> Result<Bpf> {
 
     let mut syscall_arg_table: aya::maps::HashMap<_, u64, [u16; 6]> =
         bpf.take_map("SYSCALL_ARG_TABLE").unwrap().try_into()?;
-    let filiter = filter::Filter::new(args.filter.as_deref())?;
     for (sysno, v) in syscall_info::arch::SYSCALL_ARG_TABLE.iter().enumerate() {
-        if !filiter.check(sysno as u64) {
+        if !args.filiter.check(sysno as u64) {
             continue;
         }
         let mut map_element: [u16; 6] = [0; 6];
@@ -148,26 +181,32 @@ fn init_bpf(args: &Args) -> Result<Bpf> {
         }
         syscall_arg_table.insert(sysno as u64, map_element, 0)?;
     }
-    if !args.target.pid.is_empty() {
+
+    if args.exclude_mode {
+        let mut map: aya::maps::HashMap<_, u8, u8> = bpf.take_map("FLAG").unwrap().try_into()?;
+        map.insert(0, 0, 0)?;
+        std::mem::forget(map);
+    }
+    if !args.pid.is_empty() {
         let mut map: aya::maps::HashMap<_, u32, u8> =
             bpf.take_map("TRAGET_PID").unwrap().try_into()?;
-        for pid in &args.target.pid {
+        for pid in &args.pid {
             map.insert(pid, 0, 0)?;
         }
         std::mem::forget(map);
     }
-    if !args.target.tid.is_empty() {
+    if !args.tid.is_empty() {
         let mut map: aya::maps::HashMap<_, u32, u8> =
             bpf.take_map("TRAGET_TID").unwrap().try_into()?;
-        for tid in &args.target.tid {
+        for tid in &args.tid {
             map.insert(tid, 0, 0)?;
         }
         std::mem::forget(map);
     }
-    if !args.target.uid.is_empty() {
+    if !args.uid.is_empty() {
         let mut map: aya::maps::HashMap<_, u32, u8> =
             bpf.take_map("TRAGET_UID").unwrap().try_into()?;
-        for uid in &args.target.uid {
+        for uid in &args.uid {
             map.insert(uid, 0, 0)?;
         }
         std::mem::forget(map);
@@ -222,10 +261,57 @@ fn bump_memlock_rlimit() {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let args = Args::parse();
+    let args = match parse_bpf_arg(Args::parse()) {
+        Ok(args) => args,
+        Err(e) => {
+            println!("{} {}", "Error:".red().bold(), e);
+            std::process::exit(1);
+        }
+    };
     bump_memlock_rlimit();
     let bpf = init_bpf(&args)?;
     tokio::signal::ctrl_c().await?;
     std::mem::drop(bpf);
     Ok(())
+}
+
+fn parse_bpf_arg(args: Args) -> Result<BpfArg, String> {
+    let filter = filter::Filter::new(args.filter.as_deref())?;
+    match (args.include, args.exclude, args.all) {
+        (Some(include), None, false) => Ok(BpfArg {
+            exclude_mode: false,
+            tid: include.tid,
+            uid: include.uid,
+            pid: include.pid,
+            filiter: filter,
+        }),
+        (None, Some(exclude), false) => {
+            let mut arg = BpfArg {
+                exclude_mode: true,
+                tid: exclude.exclude_tid,
+                uid: exclude.exclude_uid,
+                pid: exclude.exclude_pid,
+                filiter: filter,
+            };
+            if exclude.exclude_self {
+                arg.pid.push(std::process::id())
+            }
+            Ok(arg)
+        }
+        (None, None, true) => Ok(BpfArg {
+            exclude_mode: true,
+            tid: vec![],
+            uid: vec![],
+            pid: vec![],
+            filiter: filter,
+        }),
+        (None, None, false) => Err(
+            "You must specify filtering rules. If you want to monitor all processes, use `--all`"
+                .to_string(),
+        ),
+        _ => Err(
+            "There can be only one parameter for inclusion and exclusion types and `--all`"
+                .to_string(),
+        ),
+    }
 }

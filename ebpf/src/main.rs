@@ -22,22 +22,26 @@ pub static mut RECORD_LOGS: PerfEventByteArray = PerfEventByteArray::new(0);
 static mut CONTEXT: HashMap<u32, [usize; 6]> = HashMap::with_max_entries(64, 0);
 
 #[map]
-static mut TRAGET_PID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
+static mut TRAGET_PID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
 #[map]
-static mut TRAGET_TID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
+static mut TRAGET_TID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
 #[map]
-static mut TRAGET_UID: HashMap<u32, u8> = HashMap::with_max_entries(4, 0);
+static mut TRAGET_UID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
+
+#[map]
+static mut FLAG: HashMap<u8, u8> = HashMap::with_max_entries(1, 0);
 
 fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let pid_tid = bpf_get_current_pid_tgid();
     let pid = (pid_tid >> 32) as u32;
     let tid = pid_tid as u32;
     if unsafe {
-        TRAGET_PID.get(&pid).is_none()
-            && TRAGET_TID.get(&tid).is_none()
-            && TRAGET_UID
-                .get(&(bpf_get_current_uid_gid() as u32))
-                .is_none()
+        FLAG.get(&0).is_some()
+            ^ (TRAGET_PID.get(&pid).is_none()
+                && TRAGET_TID.get(&tid).is_none()
+                && TRAGET_UID
+                    .get(&(bpf_get_current_uid_gid() as u32))
+                    .is_none())
     } {
         return Ok(());
     }
@@ -108,11 +112,12 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let pid = (pid_tid >> 32) as u32;
     let tid = pid_tid as u32;
     if unsafe {
-        TRAGET_PID.get(&pid).is_none()
-            && TRAGET_TID.get(&tid).is_none()
-            && TRAGET_UID
-                .get(&(bpf_get_current_uid_gid() as u32))
-                .is_none()
+        FLAG.get(&0).is_some()
+            ^ (TRAGET_PID.get(&pid).is_none()
+                && TRAGET_TID.get(&tid).is_none()
+                && TRAGET_UID
+                    .get(&(bpf_get_current_uid_gid() as u32))
+                    .is_none())
     } {
         return Ok(());
     }

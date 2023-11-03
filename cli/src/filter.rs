@@ -7,7 +7,7 @@ use regex::Regex;
 use crate::syscall_info::arch::SYSCALL_ARG_TABLE;
 
 bitflags! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     pub struct Tags: u32 {
         /// TRACE_DESC
         const DESC = 0x01;
@@ -48,6 +48,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug)]
 pub struct Filter {
     tags: Tags,
     regex: Vec<Regex>,
@@ -57,7 +58,7 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn new(expr: Option<&str>) -> Result<Self> {
+    pub fn new(expr: Option<&str>) -> Result<Self, String> {
         let expr = match expr {
             Some(e) => e,
             None => {
@@ -84,7 +85,7 @@ impl Filter {
         for item in expr.split(',') {
             let item = item.trim();
             if item.is_empty() {
-                anyhow::bail!("Expect a filter item");
+                return Err(format!("Expect a filter item"));
             }
             if item.starts_with('%') {
                 match item {
@@ -106,21 +107,21 @@ impl Filter {
                     "%seccomp_default" => tags |= Tags::SECCOMP_DEFAULT,
                     "%creds" => tags |= Tags::CREDS,
                     "%clock" => tags |= Tags::CLOCK,
-                    _ => anyhow::bail!("invalid tag: {}", item),
+                    _ => return Err(format!("invalid tag: {}", item)),
                 }
             } else if let Some(item) = item.strip_prefix('/') {
-                regex.push(Regex::new(item)?);
+                regex.push(Regex::new(item).map_err(|e| e.to_string())?);
             } else if item == "all" {
                 all = true;
                 if is_blacklist {
-                    anyhow::bail!("invalid filter: 'all' in blacklist mode");
+                    return Err(format!("invalid filter: 'all' in blacklist mode"));
                 }
             } else {
                 let sysname = crate::Sysno::from_str(item);
                 if let Ok(sysname) = sysname {
                     syscall_num.push(sysname.id() as u64);
                 } else {
-                    anyhow::bail!("invalid syscall name: {}", item);
+                    return Err(format!("invalid syscall name: {}", item));
                 }
             }
         }
