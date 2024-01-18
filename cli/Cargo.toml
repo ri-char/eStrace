@@ -11,11 +11,13 @@ syscalls = { version = "*", default-features = false, features = ["x86_64"] }
 syscalls = { version = "*", default-features = false, features = ["aarch64"] }
 
 [dependencies]
-aya = { git = "https://github.com/aya-rs/aya", branch = "main", features = ["async_tokio"]}
+aya = { git = "https://github.com/aya-rs/aya", branch = "main", features = [
+  "async_tokio",
+] }
 anyhow = "1"
-tokio = { version = "1", features = ["rt", "macros", "signal", "sync"] }
+tokio = { version = "1", features = ["rt", "macros", "signal", "sync", "time"] }
 clap = { version = "4", features = ["derive"] }
-common = { path = "../common"}
+common = { path = "../common" }
 bytes = "1"
 lazy_static = "1"
 colored = "2"
@@ -24,8 +26,10 @@ bitflags = "2"
 regex = { version = "1", default-features = false, features = ["std"] }
 syn = "*"
 quote = "1"
-linux-raw-sys = "0.4.3"
+linux-raw-sys = "0.6.3"
 aligners = { version = "0.0.10", default-features = false }
+signal-hook = "0.3"
+async-pidfd = "0.1"
 
 [[bin]]
 name = "estrace"

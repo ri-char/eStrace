@@ -1,4 +1,6 @@
+use crate::event::Event;
 use anyhow::Result;
+use async_pidfd::AsyncPidFd;
 use aya::maps::AsyncPerfEventArray;
 use aya::programs::TracePoint;
 use aya::util::online_cpus;
@@ -7,10 +9,12 @@ use bytes::{Buf, BytesMut};
 use clap::Parser;
 use colored::Colorize;
 use common::STR_MAX_LENGTH;
+use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::os::unix::process::CommandExt;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use tokio::sync::Mutex;
-
-use crate::event::Event;
 
 #[cfg(target_arch = "aarch64")]
 pub use syscalls::aarch64::Sysno;
@@ -78,6 +82,9 @@ pub struct Args {
     /// %seccomp_default Trace seccomp default actions.
     #[clap(short, long)]
     filter: Option<String>,
+    // launch a program and trace it
+    #[clap()]
+    launch: Vec<String>,
 }
 
 #[derive(clap::Args, Clone)]
@@ -123,6 +130,7 @@ struct BpfArg {
     tid: Vec<u32>,
     uid: Vec<u32>,
     filiter: filter::Filter,
+    run_pid: Option<u32>,
 }
 
 lazy_static::lazy_static! {
@@ -162,7 +170,7 @@ async fn handle_event(byte: &mut BytesMut) {
     }
 }
 
-fn init_bpf(args: &BpfArg) -> Result<Bpf> {
+fn init_bpf(args: BpfArg) -> Result<Bpf> {
     #[cfg(debug_assertions)]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/ebpf");
     #[cfg(not(debug_assertions))]
@@ -215,9 +223,9 @@ fn init_bpf(args: &BpfArg) -> Result<Bpf> {
     let mut record: AsyncPerfEventArray<_> = bpf.take_map("RECORD_LOGS").unwrap().try_into()?;
 
     for cpu_id in online_cpus()? {
-        let mut buf = record.open(cpu_id, None)?;
+        let mut buf = record.open(cpu_id, Some(4))?;
         tokio::spawn(async move {
-            let mut buffers = vec![BytesMut::with_capacity(19 + STR_MAX_LENGTH); 512];
+            let mut buffers = vec![BytesMut::with_capacity(19 + STR_MAX_LENGTH); 4096];
 
             loop {
                 let events = buf.read_events(&mut buffers).await.unwrap();
@@ -225,6 +233,7 @@ fn init_bpf(args: &BpfArg) -> Result<Bpf> {
                     println!("{} Lost {} events", "Warning:".yellow().bold(), events.lost);
                 }
                 for i in buffers.iter_mut().take(events.read) {
+                    // println!("recv: {:x?}", i[0]);
                     handle_event(i).await;
                 }
             }
@@ -238,6 +247,9 @@ fn init_bpf(args: &BpfArg) -> Result<Bpf> {
     let program: &mut TracePoint = bpf.program_mut("exit_syscall").unwrap().try_into()?;
     program.load()?;
     program.attach("raw_syscalls", "sys_exit")?;
+    if let Some(signal) = args.run_pid {
+        unsafe { libc::kill(signal as i32, libc::SIGUSR1) };
+    }
     Ok(bpf)
 }
 
@@ -261,6 +273,7 @@ fn bump_memlock_rlimit() {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    bump_memlock_rlimit();
     let args = match parse_bpf_arg(Args::parse()) {
         Ok(args) => args,
         Err(e) => {
@@ -268,49 +281,93 @@ async fn main() -> Result<()> {
             std::process::exit(1);
         }
     };
-    bump_memlock_rlimit();
-    let bpf = init_bpf(&args)?;
-    tokio::signal::ctrl_c().await?;
+    let run_pid = args.run_pid;
+    let bpf = init_bpf(args)?;
+    let status = if let Some(pid) = run_pid {
+        let pidfd = AsyncPidFd::from_pid(pid as libc::pid_t)?;
+        tokio::select! {
+            res = pidfd.wait() => {Some(res?.status())}
+            _ = tokio::signal::ctrl_c() => {
+                unsafe{ libc::kill(pid as i32, libc::SIGINT); }
+                None
+            }
+        }
+    } else {
+        tokio::signal::ctrl_c().await?;
+        None
+    };
     std::mem::drop(bpf);
+    if let Some(status) = status {
+        std::process::exit(status.code().unwrap_or(1));
+    }
     Ok(())
 }
 
 fn parse_bpf_arg(args: Args) -> Result<BpfArg, String> {
     let filter = filter::Filter::new(args.filter.as_deref())?;
-    match (args.include, args.exclude, args.all) {
-        (Some(include), None, false) => Ok(BpfArg {
+    match (args.include, args.exclude, args.all, args.launch.is_empty()) {
+        (Some(include), None, false, true) => Ok(BpfArg {
             exclude_mode: false,
             tid: include.tid,
             uid: include.uid,
             pid: include.pid,
             filiter: filter,
+            run_pid: None,
         }),
-        (None, Some(exclude), false) => {
+        (None, Some(exclude), false, true) => {
             let mut arg = BpfArg {
                 exclude_mode: true,
                 tid: exclude.exclude_tid,
                 uid: exclude.exclude_uid,
                 pid: exclude.exclude_pid,
                 filiter: filter,
+                run_pid: None,
             };
             if exclude.exclude_self {
                 arg.pid.push(std::process::id())
             }
             Ok(arg)
         }
-        (None, None, true) => Ok(BpfArg {
+        (None, None, true, true) => Ok(BpfArg {
             exclude_mode: true,
             tid: vec![],
             uid: vec![],
             pid: vec![],
             filiter: filter,
+            run_pid: None,
         }),
-        (None, None, false) => Err(
+        (None, None, false, false) => {
+            let mut command = std::process::Command::new(&args.launch[0]);
+            command.args(&args.launch[1..]);
+            let pid = unsafe { libc::fork() };
+            match pid.cmp(&0) {
+                Ordering::Equal => {
+                    let signal = Arc::new(AtomicBool::new(false));
+                    signal_hook::flag::register(signal_hook::consts::SIGUSR1, Arc::clone(&signal)).unwrap();
+                    while !signal.load(std::sync::atomic::Ordering::Relaxed) {}
+                    std::panic!("{}", command.exec());
+                }
+                Ordering::Less => {
+                    Err(format!("Failed to launch process: {}", args.launch[0]))
+                }
+                Ordering::Greater => {
+                    Ok(BpfArg {
+                        exclude_mode: false,
+                        tid: vec![],
+                        uid: vec![],
+                        pid: vec![pid as u32],
+                        filiter: filter,
+                        run_pid: Some(pid as u32)
+                    })
+                }
+            }
+        },
+        (None, None, false, true) => Err(
             "You must specify filtering rules. If you want to monitor all processes, use `--all`"
                 .to_string(),
         ),
         _ => Err(
-            "There can be only one parameter for inclusion and exclusion types and `--all`"
+            "There can be only one parameter for inclusion and exclusion types, `--all` and launching a process"
                 .to_string(),
         ),
     }

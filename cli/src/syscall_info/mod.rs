@@ -31,12 +31,12 @@ const INT: ArgInfo = (ArgType::record_before, 0, &VOID_ARG_FORMATTER);
 const STR: ArgInfo = (
     ArgType::from_bits_truncate(0b00001101),
     0,
-    &VOID_ARG_FORMATTER,
+    &BYTES_ARG_FORMATTER,
 );
 const OUT_STR: ArgInfo = (
     ArgType::from_bits_truncate(0b00001110),
     0,
-    &VOID_ARG_FORMATTER,
+    &BYTES_ARG_FORMATTER,
 );
 macro_rules! input_struct {
     ($struc:ty) => {

@@ -85,7 +85,7 @@ impl Filter {
         for item in expr.split(',') {
             let item = item.trim();
             if item.is_empty() {
-                return Err(format!("Expect a filter item"));
+                return Err("Expect a filter item".to_string());
             }
             if item.starts_with('%') {
                 match item {
@@ -114,7 +114,7 @@ impl Filter {
             } else if item == "all" {
                 all = true;
                 if is_blacklist {
-                    return Err(format!("invalid filter: 'all' in blacklist mode"));
+                    return Err("invalid filter: 'all' in blacklist mode".to_string());
                 }
             } else {
                 let sysname = crate::Sysno::from_str(item);
