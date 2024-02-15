@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::os::unix::process::CommandExt;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 #[cfg(target_arch = "aarch64")]
 pub use syscalls::aarch64::Sysno;
@@ -134,8 +134,10 @@ struct BpfArg {
 }
 
 lazy_static::lazy_static! {
-    static ref PROCESSING_EVENTS: Mutex<HashMap<u32, Event>> = Mutex::new(HashMap::new());
+    static ref PROCESSING_EVENTS: Mutex<HashMap<u32, Event>> = Mutex::const_new(HashMap::new());
 }
+
+static GRACEFUL_SHUTDOWN: RwLock<()> = RwLock::const_new(());
 
 async fn handle_event(byte: &mut BytesMut) {
     let ty = byte.get_u8();
@@ -229,13 +231,15 @@ fn init_bpf(args: BpfArg) -> Result<Bpf> {
 
             loop {
                 let events = buf.read_events(&mut buffers).await.unwrap();
+
+                let guard = GRACEFUL_SHUTDOWN.read().await;
                 if events.lost != 0 {
                     println!("{} Lost {} events", "Warning:".yellow().bold(), events.lost);
                 }
                 for i in buffers.iter_mut().take(events.read) {
-                    // println!("recv: {:x?}", i[0]);
                     handle_event(i).await;
                 }
+                std::mem::drop(guard);
             }
         });
     }
@@ -271,7 +275,7 @@ fn bump_memlock_rlimit() {
     }
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> Result<()> {
     bump_memlock_rlimit();
     let args = match parse_bpf_arg(Args::parse()) {
@@ -296,10 +300,12 @@ async fn main() -> Result<()> {
         tokio::signal::ctrl_c().await?;
         None
     };
+    let guard = GRACEFUL_SHUTDOWN.write().await;
     std::mem::drop(bpf);
     if let Some(status) = status {
         std::process::exit(status.code().unwrap_or(1));
     }
+    std::mem::drop(guard);
     Ok(())
 }
 

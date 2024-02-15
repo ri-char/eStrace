@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "aya-bpf"
 version = "0.1.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#5c6bd5526096a5a4c10e95643365d16d0090cf8f"
+source = "git+https://github.com/aya-rs/aya?branch=main#963dd1321925c95f80c8a2bf656b88a39497ca01"
 dependencies = [
  "aya-bpf-bindings",
  "aya-bpf-cty",
@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "aya-bpf-bindings"
 version = "0.1.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#5c6bd5526096a5a4c10e95643365d16d0090cf8f"
+source = "git+https://github.com/aya-rs/aya?branch=main#963dd1321925c95f80c8a2bf656b88a39497ca01"
 dependencies = [
  "aya-bpf-cty",
 ]
@@ -24,13 +24,14 @@ dependencies = [
 [[package]]
 name = "aya-bpf-cty"
 version = "0.2.1"
-source = "git+https://github.com/aya-rs/aya?branch=main#5c6bd5526096a5a4c10e95643365d16d0090cf8f"
+source = "git+https://github.com/aya-rs/aya?branch=main#963dd1321925c95f80c8a2bf656b88a39497ca01"
 
 [[package]]
 name = "aya-bpf-macros"
 version = "0.1.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#5c6bd5526096a5a4c10e95643365d16d0090cf8f"
+source = "git+https://github.com/aya-rs/aya?branch=main#963dd1321925c95f80c8a2bf656b88a39497ca01"
 dependencies = [
+ "proc-macro-error",
  "proc-macro2",
  "quote",
  "syn",
@@ -55,6 +56,29 @@ version = "0.1.0"
 dependencies = [
  "aya-bpf",
  "common",
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
 ]
 
 [[package]]
@@ -97,3 +121,9 @@ name = "unicode-ident"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15811caf2415fb889178633e7724bad2509101cde276048e013b9def5e51fa0"
+
+[[package]]
+name = "version_check"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
