@@ -14,22 +14,22 @@ use common::{ArgType, STR_MAX_LENGTH};
 use core::cmp::min;
 
 #[map]
-static mut SYSCALL_ARG_TABLE: HashMap<u64, [u16; 6]> = HashMap::with_max_entries(512, 0);
+static SYSCALL_ARG_TABLE: HashMap<u64, [u16; 6]> = HashMap::with_max_entries(512, 0);
 #[map]
-pub static mut RECORD_LOGS: PerfEventByteArray = PerfEventByteArray::new(0);
+pub static RECORD_LOGS: PerfEventByteArray = PerfEventByteArray::new(0);
 
 #[map]
-static mut CONTEXT: HashMap<u32, [usize; 6]> = HashMap::with_max_entries(64, 0);
+static CONTEXT: HashMap<u32, [usize; 6]> = HashMap::with_max_entries(64, 0);
 
 #[map]
-static mut TRAGET_PID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
+static TRAGET_PID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
 #[map]
-static mut TRAGET_TID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
+static TRAGET_TID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
 #[map]
-static mut TRAGET_UID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
+static TRAGET_UID: HashMap<u32, u8> = HashMap::with_max_entries(64, 0);
 
 #[map]
-static mut FLAG: HashMap<u8, u8> = HashMap::with_max_entries(1, 0);
+static FLAG: HashMap<u8, u8> = HashMap::with_max_entries(1, 0);
 
 fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let pid_tid = bpf_get_current_pid_tgid();
@@ -49,10 +49,10 @@ fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
     let syscall_number = unsafe { ctx.read_at::<u64>(8)? };
     send_byte[1..9].copy_from_slice(&pid_tid.to_le_bytes());
     send_byte[9..17].copy_from_slice(&syscall_number.to_le_bytes());
-    unsafe { RECORD_LOGS.output(&ctx, &send_byte[..19], 0) };
+    RECORD_LOGS.output(&ctx, &send_byte[..19], 0);
     let arg_table = unsafe { SYSCALL_ARG_TABLE.get(&syscall_number).ok_or(0) }?;
     let args: [usize; 6] = unsafe { ctx.read_at(16) }?;
-    let _ = unsafe { CONTEXT.insert(&tid, &args, 0) };
+    let _ = CONTEXT.insert(&tid, &args, 0);
     for (i, ty_size) in arg_table.iter().enumerate() {
         let ty: ArgType = ArgType::from_bits_retain((*ty_size >> 8) as u8);
         let size_info: u8 = *ty_size as u8;
@@ -77,7 +77,7 @@ fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
                 } else {
                     send_byte[17] = 0;
                     send_byte[18] = 0;
-                    unsafe { RECORD_LOGS.output(&ctx, &send_byte[..19], 0) };
+                    RECORD_LOGS.output(&ctx, &send_byte[..19], 0);
                     continue;
                 }
             } else {
@@ -102,7 +102,7 @@ fn enter_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
             }
         }
         send_byte[17..19].copy_from_slice(&(additional_size as u16).to_le_bytes());
-        unsafe { RECORD_LOGS.output(&ctx, &send_byte[..19 + additional_size], 0) };
+        RECORD_LOGS.output(&ctx, &send_byte[..19 + additional_size], 0);
     }
     Ok(())
 }
@@ -131,7 +131,7 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
         send_byte[9..17].copy_from_slice(&syscall_number.to_le_bytes());
         send_byte[17] = 8;
         send_byte[19..27].copy_from_slice(&ret.to_le_bytes());
-        unsafe { RECORD_LOGS.output(&ctx, &send_byte, 0) };
+        RECORD_LOGS.output(&ctx, &send_byte, 0);
     };
     let arg_table = unsafe { SYSCALL_ARG_TABLE.get(&syscall_number).ok_or(0) }?;
     let args: &[usize; 6] = match unsafe { CONTEXT.get(&tid) } {
@@ -164,7 +164,7 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
                 } else {
                     send_byte[17] = 0;
                     send_byte[18] = 0;
-                    unsafe { RECORD_LOGS.output(&ctx, &send_byte[..19], 0) };
+                    RECORD_LOGS.output(&ctx, &send_byte[..19], 0);
                     continue;
                 }
             } else {
@@ -196,7 +196,7 @@ fn exit_syscall_inner(ctx: TracePointContext) -> Result<(), i64> {
             }
         }
         send_byte[17..19].copy_from_slice(&(additional_size as u16).to_le_bytes());
-        unsafe { RECORD_LOGS.output(&ctx, &send_byte[..19 + additional_size], 0) };
+        RECORD_LOGS.output(&ctx, &send_byte[..19 + additional_size], 0);
     }
     send_ret();
     Ok(())
