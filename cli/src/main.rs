@@ -4,7 +4,7 @@ use async_pidfd::AsyncPidFd;
 use aya::maps::AsyncPerfEventArray;
 use aya::programs::TracePoint;
 use aya::util::online_cpus;
-use aya::{include_bytes_aligned, Bpf};
+use aya::{include_bytes_aligned, Ebpf};
 use bytes::{Buf, BytesMut};
 use clap::Parser;
 use colored::Colorize;
@@ -172,12 +172,12 @@ async fn handle_event(byte: &mut BytesMut) {
     }
 }
 
-fn init_bpf(args: BpfArg) -> Result<Bpf> {
+fn init_bpf(args: BpfArg) -> Result<Ebpf> {
     #[cfg(debug_assertions)]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/ebpf");
     #[cfg(not(debug_assertions))]
     let bpf_data = include_bytes_aligned!("../../target/bpfel-unknown-none/release/ebpf");
-    let mut bpf = Bpf::load(bpf_data)?;
+    let mut bpf = Ebpf::load(bpf_data)?;
 
     let mut syscall_arg_table: aya::maps::HashMap<_, u64, [u16; 6]> =
         bpf.take_map("SYSCALL_ARG_TABLE").unwrap().try_into()?;
@@ -224,7 +224,7 @@ fn init_bpf(args: BpfArg) -> Result<Bpf> {
 
     let mut record: AsyncPerfEventArray<_> = bpf.take_map("RECORD_LOGS").unwrap().try_into()?;
 
-    for cpu_id in online_cpus()? {
+    for cpu_id in online_cpus().map_err(|(_, e)| e)? {
         let mut buf = record.open(cpu_id, Some(4))?;
         tokio::spawn(async move {
             let mut buffers = vec![BytesMut::with_capacity(19 + STR_MAX_LENGTH); 4096];

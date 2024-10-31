@@ -1,6 +1,6 @@
 use crate::syscall_info::*;
 
-pub const SYSCALL_ARG_TABLE: [SyscallInfo; 362] = [
+pub static SYSCALL_ARG_TABLE: [SyscallInfo; 362] = [
     read,
     write,
     open,

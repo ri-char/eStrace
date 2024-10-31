@@ -26,6 +26,8 @@ pub struct SyscallInfo {
     pub tags: crate::filter::Tags,
 }
 
+unsafe impl Sync for SyscallInfo {}
+
 const ADDR: ArgInfo = (ArgType::record_before, 0, &VOID_ARG_FORMATTER);
 const INT: ArgInfo = (ArgType::record_before, 0, &VOID_ARG_FORMATTER);
 const STR: ArgInfo = (

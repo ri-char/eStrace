@@ -1,6 +1,6 @@
 use crate::syscall_info::*;
 
-pub const SYSCALL_ARG_TABLE: [SyscallInfo; 326] = [
+pub static SYSCALL_ARG_TABLE: [SyscallInfo; 326] = [
     io_setup,
     io_destroy,
     io_submit,
